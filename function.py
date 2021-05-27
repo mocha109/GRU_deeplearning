@@ -18,7 +18,7 @@ def relu(x):
 def softmax(x):
     if x.ndim == 2:
         x = x - x.max(axis=1, keepdims=True)
-        x = np.exp(x)
+        x = np.exp(x) # 防止指數溢位
         x /= x.sum(axis=1, keepdims=True)
     elif x.ndim == 1:
         x = x - np.max(x)
@@ -31,6 +31,8 @@ def cross_entropy_error(y, t):
     if y.ndim == 1:
         t = t.reshape(1, t.size)
         y = y.reshape(1, y.size)
+    
+    # 訓練資料為one-hot向量時，轉換成正解標籤的索引值
     if t.size == y.size:
         t = t.argmax(axis=1)
              

@@ -1,6 +1,10 @@
-print('mocha5566')
-a= 264
-wjs=10
-p = 10 + 6
-s=1+2
-x=3+5
+# %%
+import numpy as np
+a = np.array([[1,2,3],[4,5,6]])
+b = np.sum(a)
+c = np.sum(a)*6
+print(b,c)
+
+# %%
+print(a)
+# %%
