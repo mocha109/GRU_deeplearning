@@ -3,6 +3,9 @@ from common.layers import *
 from common.functions import softmax, sigmoid_gru
 
 class GRU:
+    """
+    此類別為處理各總體經濟變數，計算變數落後期影響力
+    """
     def __init__(self, Wx, Wh, b):
         
         self.params = [Wx, Wh, b]
@@ -10,6 +13,9 @@ class GRU:
         self.cache = None
 
     def forward(self, x, h_prev):
+        '''
+        本函數使用的sigmoid為變種型，加入gamma
+        '''
         Wx, Wh, b = self.params
         H = Wh.shape[0]
         Wxz, Wxr, Wxh = Wx[:, :H], Wx[:, H:2 * H], Wx[:, 2 * H:]
@@ -26,6 +32,11 @@ class GRU:
         return h_next
 
     def backward(self, dh_next,gamma):
+        """
+        sigmoid和tanh函數微分結果
+        1.z = sigmoid(x) -> dz/dx = z * (1-z)
+        2.t = tanh(x)    -> dt/dx = 1 - t**2
+        """
         Wx, Wh, b = self.params
         H = Wh.shape[0]
         Wxz, Wxr, Wxh = Wx[:, :H], Wx[:, H:2 * H], Wx[:, 2 * H:]
