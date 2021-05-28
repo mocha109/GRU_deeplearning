@@ -67,11 +67,11 @@ class GRU:
         # reset gate(r)
         dr = dhr * h_prev
         dt = dr * r * (1-r)
-        dbr = np.sum(dt, axis=0)
-        dWhr = np.dot(h_prev.T, dt)
-        dh_prev += np.dot(dt, Whr.T)
-        dWxr = np.dot(x.T, dt)
-        dx += np.dot(dt, Wxr.T)
+        dbr = np.sum(dt, axis=0)*gamma
+        dWhr = np.dot(h_prev.T, dt)*gamma
+        dh_prev += np.dot(dt, Whr.T)*gamma
+        dWxr = np.dot(x.T, dt)*gamma
+        dx += np.dot(dt, Wxr.T)*gamma
 
         self.dWx = np.hstack((dWxz, dWxr, dWxh))
         self.dWh = np.hstack((dWhz, dWhr, dWhh))
