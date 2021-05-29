@@ -12,10 +12,10 @@ url = "https://isin.twse.com.tw/isin/class_main.jsp?owncode=&stockname=&isincode
 response = requests.get(url)
 listed = pd.read_html(response.text)[0]
 listed.columns = listed.iloc[0,:]
-listed = listed[["證券代號","證券名稱","市場別","產業別","公開發行/上市(櫃)/發行日"]]
+listed = listed[["有價證券代號","有價證券名稱","市場別","產業別","公開發行/上市(櫃)/發行日"]]
 listed = listed.iloc[1:]
 listed
-stock_1 = listed["證券代號"]
+stock_1 = listed["有價證券代號"]
 stock_num = stock_1.apply(lambda x: str(x) + ".TW")
 stock_num
 
@@ -34,7 +34,7 @@ def stock_data(stock_id,time_start,time_end) :
     url = url + stock_id + "?period1=" + str(s1) + "&amp;period2=" + str(s2) + "&amp;interval=1d&amp;events=history&amp;includeAdjustedClose=true"
     response = requests.get(url)
     df = pd.read_csv(StringIO(response.text),index_col = "Date",parse_dates = ["Date"])
-    address = r"C:\Users\user\Desktop\pyhton2\stock\\" + stock_id + ".csv"        # 路徑要改
+    address = r"C:\\Users\\user\\Desktop\\pyhton2\\stock\\" + stock_id + ".csv"        # 路徑要改
     if  os.path.isfile(address):
         df_new = pd.read_csv(address,index_col = "Date",parse_dates = ["Date"])
         if time_start not in df_new.index:
