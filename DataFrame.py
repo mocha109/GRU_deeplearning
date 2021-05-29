@@ -11,10 +11,10 @@ url = "https://isin.twse.com.tw/isin/class_main.jsp?owncode=&amp;amp;stockname=&
 response = requests.get(url)
 listed = pd.read_html(response.text)[0]
 listed.columns = listed.iloc[0,:]
-listed = listed[["有價證券代號","有價證券名稱","市場別","產業別","公開發行/上市(櫃)/發行日"]]
+listed = listed[["證券代號","證券名稱","市場別","產業別","公開發行/上市(櫃)/發行日"]]
 listed = listed.iloc[1:]
 listed
-stock_1 = listed["有價證券代號"]
+stock_1 = listed["證券代號"]
 stock_num = stock_1.apply(lambda x: str(x) + ".TW")
 stock_num
 
@@ -47,7 +47,7 @@ def stock_data(stock_id,time_start,time_end) :
         print("此為新資料，已創建csv檔")
 
 time_start = "2000-01-01"
-time_end = "2020-12-23
+time_end = "2020-12-23"
 for i in stock_num :   
     try:
         stock_data(i, time_start,time_end)
