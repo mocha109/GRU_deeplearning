@@ -1,4 +1,4 @@
-from common.np import *
+from GRU_deeplearning.np import *
 
 
 def sigmoid(x):
