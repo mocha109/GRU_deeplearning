@@ -7,7 +7,7 @@ import datetime
 import os  #os : 專門負責文件或目錄處理的軟件
 
 # list資料
-url = "https://isin.twse.com.tw/isin/class_main.jsp?owncode=&amp;amp;stockname=&amp;amp;isincode=&amp;amp;market=1&amp;amp;issuetype=1&amp;amp;industry_code=&amp;amp;Page=1&amp;amp;chklike=Y"
+url = "https://isin.twse.com.tw/isin/class_main.jsp?owncode=&stockname=&isincode=&market=1&issuetype=&industry_code=&Page=1&chklike=Y"
 response = requests.get(url)
 listed = pd.read_html(response.text)[0]
 listed.columns = listed.iloc[0,:]
