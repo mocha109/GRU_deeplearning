@@ -34,7 +34,7 @@ def stock_data(stock_id,time_start,time_end) :
     url = url + stock_id + "?period1=" + str(s1) + "&amp;period2=" + str(s2) + "&amp;interval=1d&amp;events=history&amp;includeAdjustedClose=true"
     response = requests.get(url)
     df = pd.read_csv(StringIO(response.text),index_col = "Date",parse_dates = ["Date"])
-    address = r"C:\\Users\\user\\Desktop\\pyhton2\\stock\\" + stock_id + ".csv"        # 路徑要改
+    address = "C:\\Users\\user\\Desktop\\pyhton2\\stock\\" + stock_id + ".csv"        # 路徑要改
     if  os.path.isfile(address):
         df_new = pd.read_csv(address,index_col = "Date",parse_dates = ["Date"])
         if time_start not in df_new.index:
