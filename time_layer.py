@@ -1,10 +1,11 @@
-from common.np import *  # import numpy as np (or import cupy as np)
-from common.layers import *
-from common.functions import softmax, sigmoid_gru
+from GRU_deeplearning.np import *  # import numpy as np (or import cupy as np)
+from GRU_deeplearning.layers import *
+from GRU_deeplearning.functions import softmax, sigmoid_gru
 
 class GRU:
     """
-    此類別為處理各總體經濟變數，計算變數落後期影響力
+    1.此類別為處理各總體經濟變數，計算變數落後期影響力
+    2.每一個GRU是在處理單一變數的單一期
     """
     def __init__(self, Wx, Wh, b):
         
@@ -82,8 +83,12 @@ class GRU:
         self.grads[2][...] = self.db
 
         return dx, dh_prev
+
 class TimeGRU:
-    def __init__(self, Wx, Wh, b, stateful=False):
+    '''
+    每一個timeGRU為一個變數的所有GRU(T=0~T=T)的組合
+    '''
+    def __init__(self, Wx, Wh, b, stateful=True):
         self.params = [Wx, Wh, b]
         self.grads = [np.zeros_like(Wx), np.zeros_like(Wh), np.zeros_like(b)]
         self.layers = None
@@ -92,17 +97,19 @@ class TimeGRU:
 
     def forward(self, xs):
         Wx, Wh, b = self.params
-        N, T, D = xs.shape
-        H = Wh.shape[0]
+        N, T, D = xs.shape  # N為批次、T為期數、D為維度
+        H = Wh.shape[0]  # Wh.shape[0]的輸出為Wh的列，對應的是xs的D
         self.layers = []
         hs = np.empty((N, T, H), dtype='f')
-
+        
+        # 用於處理第一期時，部會有上一期Ht的情況(一般實際執行時self.stateful會設為True)
         if not self.stateful or self.h is None:
             self.h = np.zeros((N, H), dtype='f')
 
+        # 將所有期的GRU連結
         for t in range(T):
-            layer = GRU(*self.params)
-            self.h = layer.forward(xs[:, t, :], self.h)
+            layer = GRU(*self.params)  # *參數 : 用於接收實際呼叫函數時，所有多出來的引數會被打包為tuple給該參數
+            self.h = layer.forward(xs[:, t, :], self.h)  # xs[:, t, :]的輸出為所有批次、維度的第t列，結果會另外組成一個新的array
             hs[:, t, :] = self.h
             self.layers.append(layer)
         return hs
