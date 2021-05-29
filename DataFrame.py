@@ -4,7 +4,8 @@ import requests
 import pandas as pd
 from io import StringIO
 import datetime
-import os  #os : 專門負責文件或目錄處理的軟件
+# os : 專門負責文件或目錄處理的軟件
+import os  
 
 # list資料
 url = "https://isin.twse.com.tw/isin/class_main.jsp?owncode=&stockname=&isincode=&market=1&issuetype=&industry_code=&Page=1&chklike=Y"
