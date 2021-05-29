@@ -47,7 +47,7 @@ def stock_data(stock_id,time_start,time_end) :
         print("此為新資料，已創建csv檔")
 
 time_start = "2000-01-01"
-time_end = "2020-12-23"
+time_end = "2020-12-31"
 for i in stock_num :   
     try:
         stock_data(i, time_start,time_end)
