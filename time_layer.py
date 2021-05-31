@@ -2,6 +2,41 @@ from GRU_deeplearning.np import *  # import numpy as np (or import cupy as np)
 from GRU_deeplearning.layers import *
 from GRU_deeplearning.functions import softmax, sigmoid_gru
 
+#jerry請看這，我在想TimeEmbedding的W是否形狀不應和gru相同，一開始輸入的資料應該是T*D(T是期數、D是同一總經變數的不同形式)
+class TimeEmbedding:
+    def __init__(self, W):
+        self.params = [W]
+        self.grads = [np.zeros_like(W)]
+        self.layers = None
+        self.W = W
+
+    def forward(self, xs):
+        N, T = xs.shape
+        V, D = self.W.shape
+
+        out = np.empty((N, T, D), dtype='f')
+        self.layers = []
+
+        for t in range(T):
+            layer = Embedding(self.W)
+            out[:, t, :] = layer.forward(xs[:, t])
+            self.layers.append(layer)
+
+        return out
+
+    def backward(self, dout):
+        N, T, D = dout.shape
+
+        grad = 0
+        for t in range(T):
+            layer = self.layers[t]
+            layer.backward(dout[:, t, :])
+            grad += layer.grads[0]
+
+        self.grads[0][...] = grad
+
+        return None
+
 class GRU:
     """
     1.此類別為處理各總體經濟變數，計算變數落後期影響力
