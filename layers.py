@@ -62,7 +62,7 @@ class Softmax:
         return dx
 
 
-class SoftmaxWithLoss:
+class SoftmaxWithLoss:   
     def __init__(self):
         self.params, self.grads = [], []
         self.y = None  # softmax的輸出
@@ -73,10 +73,12 @@ class SoftmaxWithLoss:
         self.y = softmax(x)
 
         # 訓練標籤為one-hot向量時，轉換成正解標籤的索引值        if self.t.size == self.y.size:
+        if self.t.size == self.y.size:
             self.t = self.t.argmax(axis=1)
 
         loss = cross_entropy_error(self.y, self.t)
         return loss
+
 
     def backward(self, dout=1):
         batch_size = self.t.shape[0]
