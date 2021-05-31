@@ -191,3 +191,78 @@ class TimeGRU:
 
     def reset_state(self):
         self.h = None
+
+
+class TimeAffine:
+    def __init__(self, W, b):
+        self.params = [W, b]
+        self.grads = [np.zeros_like(W), np.zeros_like(b)]
+        self.x = None
+
+    def forward(self, x):
+        N, T, D = x.shape
+        W, b = self.params
+
+        rx = x.reshape(N*T, -1)
+        out = np.dot(rx, W) + b
+        self.x = x
+        return out.reshape(N, T, -1)
+
+    def backward(self, dout):
+        x = self.x
+        N, T, D = x.shape
+        W, b = self.params
+
+        dout = dout.reshape(N*T, -1)
+        rx = x.reshape(N*T, -1)
+
+        db = np.sum(dout, axis=0)
+        dW = np.dot(rx.T, dout)
+        dx = np.dot(dout, W.T)
+        dx = dx.reshape(*x.shape)
+
+        self.grads[0][...] = dW
+        self.grads[1][...] = db
+
+        return dx
+
+
+class TimeSoftmaxWithLoss:
+    def __init__(self):
+        self.params, self.grads = [], []
+        self.cache = None
+        self.ignore_label = -1
+
+    def forward(self, xs, ts):
+        N, T, V = xs.shape
+
+        if ts.ndim == 3: 
+            ts = ts.argmax(axis=2)
+
+        mask = (ts != self.ignore_label)
+
+        xs = xs.reshape(N * T, V)
+        ts = ts.reshape(N * T)
+        mask = mask.reshape(N * T)
+
+        ys = softmax(xs)
+        ls = np.log(ys[np.arange(N * T), ts])
+        ls *= mask 
+        loss = -np.sum(ls)
+        loss /= mask.sum()
+
+        self.cache = (ts, ys, mask, (N, T, V))
+        return loss
+
+    def backward(self, dout=1):
+        ts, ys, mask, (N, T, V) = self.cache
+
+        dx = ys
+        dx[np.arange(N * T), ts] -= 1
+        dx *= dout
+        dx /= mask.sum()
+        dx *= mask[:, np.newaxis]  
+
+        dx = dx.reshape((N, T, V))
+
+        return dx
