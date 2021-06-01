@@ -101,6 +101,18 @@ def multi_stock():
             print(code + "_fail")
 
 multi_stock()
+
+
+#list(stock_num)
+#stocks = random.sample(list(stock_num),30)
+#print(stocks)
+#import yfinance as yf
+#df = yf.download(stocks,start="2020-07-31",end="2020-12-31")
+#print(df.columns)
+#print(df['Adj Close'].head())
+
+
+
 # stock_num = DownloadStockID()
 # count_success = 0
 
