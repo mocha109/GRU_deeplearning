@@ -3,8 +3,8 @@ import pickle
 import numpy as np
 
 class Rnngru:
-    def __init__(self, var_size, batch_size, time_size,output_size, hidden_size=100):
-        V, B, T, H, O = var_size, batch_size, time_size, output_size, hidden_size
+    def __init__(self,xs , var_size, batch_size, time_size,output_size, hidden_size=100):
+        N, B, T, H, O = var_size, batch_size, time_size, output_size, hidden_size
         rn = np.random.randn
         
         #初始化權重
@@ -17,7 +17,7 @@ class Rnngru:
         #產生各層
         self.layers = [
             TimeGRU(gru_Wx,gru_Wh,gru_b,stateful=True),
-            TimeConnection(),
+            TimeConnection(shape_x=(N, B, T)),
             TimeAffine(affine_W,affine_b)
         ]
         self.loss_layer = TimeSoftmaxWithLoss()
