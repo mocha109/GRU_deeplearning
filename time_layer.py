@@ -138,20 +138,20 @@ class TimeGRU:
         利用迴圈處理第1期~第t期的gru節點
         '''
         Wx, Wh, b = self.params
-        N, T, D = xs.shape  # N為批次、T為期數、D為維度
-        H = Wh.shape[0]  # Wh.shape[0]的輸出為Wh的列，對應的是xs的D
+        N, B, T = xs.shape  # N為變數數量、B為批次、D為每批次期數
+        H = Wh.shape[0]  # Wh.shape[0]的輸出為Wh的列，對應的是xs的T
         self.layers = []
-        hs = np.empty((N, T, H), dtype='f')
+        hs = np.empty((N, B, H), dtype='f')
         
         # 用於處理第一期時，不會有上一期Ht的情況(一般實際執行時self.stateful會設為True)，p.177
         if not self.stateful or self.h is None:
             self.h = np.zeros((N, H), dtype='f')
 
         # 將所有期的GRU連結
-        for t in range(T):
+        for b in range(B):
             layer = GRU(*self.params)  # *參數 : 用於接收實際呼叫函數時，所有多出來的引數會被打包為tuple給該參數
-            self.h = layer.forward(xs[:, t, :], self.h)  # xs[:, t, :]的輸出為所有批次、維度的第t列，結果會另外組成一個新的array
-            hs[:, t, :] = self.h
+            self.h = layer.forward(xs[:, b, :], self.h)  # xs[:, b, :]的輸出為所有變數的第b批次，結果會另外組成一個新的array
+            hs[:, b, :] = self.h
             self.layers.append(layer)
         return hs
 
@@ -160,19 +160,19 @@ class TimeGRU:
         1
         '''
         Wx, Wh, b = self.params
-        N, T, H = dhs.shape
-        D = Wx.shape[0]
+        N, B, H = dhs.shape
+        T = Wx.shape[0]
 
-        dxs = np.empty((N, T, D), dtype='f')
+        dxs = np.empty((N, B, T), dtype='f')
 
         dh = 0
         grads = [0, 0, 0]
 
         # 由於是反向傳播，因此要將順序顛倒(由後往前_，從第t期GRU往前回朔至第1期GRU
-        for t in reversed(range(T)):
-            layer = self.layers[t]
-            dx, dh = layer.backward(dhs[:, t, :] + dh)
-            dxs[:, t, :] = dx
+        for b in reversed(range(B)):
+            layer = self.layers[b]
+            dx, dh = layer.backward(dhs[:, b, :] + dh)
+            dxs[:, b, :] = dx
             
             # 將單一變數的每個gru所產生的Wx、Wh、b分別累計儲存進grads，儲存方式與gru相同
             for i, grad in enumerate(layer.grads):
@@ -195,20 +195,28 @@ class TimeGRU:
 
 
 class TimeConnection:
-    def __init__(self, time_size):
-        self.x = np.zero(time_size)
-        self.dx = np.zero(time_size)
+    def __init__(self, x):
+        self.N, self.B, self.T = x.shape
+        self.x = np.zeros((N, B * T), dtype='f')
+        self.dx = None
     
-    def forward(self, x, t_loop):
-        if (self.x == np.zero(time_size)).any():
-            self.x = x
-        else:
-            self.x = np.vstack((self.x, x))
+    def forward(self, x):
+        N, B, T = self.N, self.B, self.T
+        x.reshape(N, B * T)
         
-        return self.x[:,t_loop]
+        # if (self.x == np.zeros((B * T), dtype='f')).any():
+        self.x = x[:,0]
+        # else:
+        for t in range(1, B*T):
+            self.x = np.vstack((self.x, x[:,t]))
+        
+        return self.x
     
-    def backward(self, dx, t_loop):
-        self.dx = dx[:,t_loop]
+    def backward(self, dx):
+        N, B, T = self.N, self.B, self.T
+        self.dx = dx[:,0]
+        for n in range(1, N):
+            self.dx = np.vstack(self.x, dx[:,n])
 
         return self.dx
 
