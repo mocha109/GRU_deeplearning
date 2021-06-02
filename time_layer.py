@@ -1,6 +1,7 @@
 from GRU_deeplearning.np import *  # import numpy as np (or import cupy as np)
 from GRU_deeplearning.layers import *
 from GRU_deeplearning.functions import softmax, sigmoid_gru
+import numpy as np
 
 #jerry請看這，我在想TimeEmbedding的W是否形狀不應和gru相同，一開始輸入的資料應該是T*D(T是期數、D是同一總經變數的不同形式)
 class TimeEmbedding:
@@ -191,6 +192,26 @@ class TimeGRU:
 
     def reset_state(self):
         self.h = None
+
+
+class TimeConnection:
+    def __init__(self, time_size):
+        self.x = np.zero(time_size)
+        self.dx = np.zero(time_size)
+    
+    def forward(self, x, t_loop):
+        if (self.x == np.zero(time_size)).any():
+            self.x = x
+        else:
+            self.x = np.vstack((self.x, x))
+        
+        return self.x[:,t_loop]
+    
+    def backward(self, dx, t_loop):
+        self.dx = dx[:,t_loop]
+
+        return self.dx
+
 
 
 class TimeAffine:
