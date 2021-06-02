@@ -1,7 +1,7 @@
 # coding: utf-8
-from GRU_deeplearning.np import *  # import numpy as np
-from GRU_deeplearning.config import GPU
-from GRU_deeplearning.function import softmax, cross_entropy_error
+from npTOcp import *  # import numpy as np
+from config import GPU
+from function import softmax, cross_entropy_error
 
 class Affine:
     def __init__(self, W, b):

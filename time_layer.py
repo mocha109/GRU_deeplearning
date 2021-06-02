@@ -1,6 +1,6 @@
-from GRU_deeplearning.np import *  # import numpy as np (or import cupy as np)
-from GRU_deeplearning.layers import *
-from GRU_deeplearning.functions import softmax, sigmoid_gru
+from npTOcp import *  # import numpy as np (or import cupy as np)
+from layers import *
+from function import softmax, sigmoid_gru
 import numpy as np
 
 #jerry請看這，我在想TimeEmbedding的W是否形狀不應和gru相同，一開始輸入的資料應該是T*D(T是期數、D是同一總經變數的不同形式)

@@ -1,5 +1,4 @@
-from time_layer import TimeGRU
-from GRU_deeplearning.time_layer import *
+from time_layer import *
 import pickle
 import numpy as np
 
@@ -19,7 +18,7 @@ class Rnngru:
         self.layers = [
             TimeGRU(gru_Wx,gru_Wh,gru_b,stateful=True),
             TimeConnection(),
-            TimeAffine(affine_w,affine_b)
+            TimeAffine(affine_W,affine_b)
         ]
         self.loss_layer = TimeSoftmaxWithLoss()
         self.lstm_layer = self.layers[1]
