@@ -1,6 +1,6 @@
 from npTOcp import *  # import numpy as np (or import cupy as np)
 from layers import *
-from function import softmax, sigmoid_gru
+from function import softmax, sigmoid_gru, sigmoid_st
 import numpy as np
 
 #jerry請看這，我在想TimeEmbedding的W是否形狀不應和gru相同，一開始輸入的資料應該是T*D(T是期數、D是同一總經變數的不同形式)
@@ -195,9 +195,9 @@ class TimeGRU:
 
 
 class TimeConnection:
-    def __init__(self, x):
-        self.N, self.B, self.T = x.shape
-        self.x = np.zeros((N, B * T), dtype='f')
+    def __init__(self, shape_x):
+        self.N, self.B, self.T = shape_x
+        self.x = np.zeros((self.N, self.B * self.T), dtype='f')
         self.dx = None
     
     def forward(self, x):
@@ -223,19 +223,24 @@ class TimeConnection:
 
 
 class TimeAffine:
-    def __init__(self, W, b):
+    def __init__(self, W, b, c):
         self.params = [W, b]
         self.grads = [np.zeros_like(W), np.zeros_like(b)]
         self.x = None
+        self.transition = c
 
-    def forward(self, x):
-        N, T, D = x.shape
+    def forward(self, x, st, gamma, c):
+        BT, N = x.shape
         W, b = self.params
+        O = b.shape[1] / 2
+        Wn, Wst = W[:, :O], W[:, O:2*O]
+        bn, bst = b[:, :O], b[:, O:2*O]
+        tran= sigmoid_st(st, gamma, c)
 
-        rx = x.reshape(N*T, -1)
-        out = np.dot(rx, W) + b
+        # rx = x.reshape(N*B, -1)
+        out = np.dot(x, Wn) + bn + tran * (np.dot(x, Wst) + bst)
         self.x = x
-        return out.reshape(N, T, -1)
+        return out  # .reshape(N, T, -1)
 
     def backward(self, dout):
         x = self.x
@@ -260,27 +265,36 @@ class TimeSoftmaxWithLoss:
     def __init__(self):
         self.params, self.grads = [], []
         self.cache = None
-        self.ignore_label = -1
+        # self.ignore_label = -1
 
-    def forward(self, xs, ts):
-        N, T, V = xs.shape
-
-        if ts.ndim == 3: 
-            ts = ts.argmax(axis=2)
-
-        mask = (ts != self.ignore_label)
-
-        xs = xs.reshape(N * T, V)
-        ts = ts.reshape(N * T)
-        mask = mask.reshape(N * T)
-
+    def forward(self, xs, ts, batch_size):
+        BT, O = xs.shape
+        B = batch_size
         ys = softmax(xs)
-        ls = np.log(ys[np.arange(N * T), ts])
-        ls *= mask 
-        loss = -np.sum(ls)
-        loss /= mask.sum()
+        loss = -1 * np.log(ys) * ts
+        toal_loss = np.sum(loss)
+        avg_loss = toal_loss / B
 
-        self.cache = (ts, ys, mask, (N, T, V))
+
+        # N, T, V = xs.shape
+
+        # if ts.ndim == 3: 
+        #     ts = ts.argmax(axis=2)
+
+        # mask = (ts != self.ignore_label)
+
+        # xs = xs.reshape(N * T, V)
+        # ts = ts.reshape(N * T)
+        # mask = mask.reshape(N * T)
+
+        # ys = softmax(xs)
+        # ls = np.log(ys[np.arange(N * T), ts])
+        # ls *= mask 
+        # loss = -np.sum(ls)
+        # loss /= mask.sum()
+
+        # self.cache = (ts, ys, mask, (N, T, V))
+        self.cache = (ts, ys, avg_loss, (BT, O))
         return loss
 
     def backward(self, dout=1):

@@ -1,4 +1,4 @@
-from GRU_deeplearning.np import *
+from npTOcp import *
 
 
 def sigmoid(x):
@@ -16,13 +16,17 @@ def relu(x):
 
 
 def softmax(x):
-    if x.ndim == 2:
-        x = x - x.max(axis=1, keepdims=True)
-        x = np.exp(x) # 防止指數溢位
-        x /= x.sum(axis=1, keepdims=True)
-    elif x.ndim == 1:
-        x = x - np.max(x)
-        x = np.exp(x) / np.sum(np.exp(x))
+    x = x - x.max(axis=1, keepdims=True)  # 防止指數溢位
+    x = np.exp(x)
+    x = x / x.sum(axis=1, keepdims=True)
+
+    # if x.ndim == 2:
+    #     x = x - x.max(axis=1, keepdims=True)
+    #     x = np.exp(x)
+    #     x /= x.sum(axis=1, keepdims=True)
+    # elif x.ndim == 1:
+    #     x = x - np.max(x)
+    #     x = np.exp(x) / np.sum(np.exp(x))
 
     return x
 
