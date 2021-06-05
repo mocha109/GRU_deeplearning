@@ -1,7 +1,7 @@
 # coding: utf-8
 import sys
 sys.path.append('..')
-from common.np import *
+from npTOcp import *  # import numpy as np
 
 
 class SGD:

@@ -1,7 +1,7 @@
 from npTOcp import *  # import numpy as np (or import cupy as np)
 from layers import *
 from function import softmax, sigmoid_gru, sigmoid_st
-import numpy as np
+
 
 
 class GRU:
@@ -174,6 +174,8 @@ class TimeConnection:
         self.N, self.B, self.T = shape_x
         self.x = np.zeros((self.N, self.B * self.T), dtype='f')
         self.dx = None
+        self.params = None
+        self.grads = None
     
     def forward(self, x):
         '''
