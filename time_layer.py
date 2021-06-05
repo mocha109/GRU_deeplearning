@@ -138,7 +138,7 @@ class TimeGRU:
         利用迴圈處理第1期~第t期的gru節點
         '''
         Wx, Wh, b = self.params
-        N, B, T = xs.shape  # N為變數數量、B為批次、D為每批次期數
+        N, B, T = xs.shape  # N為變數數量、B為批次、T為每批次期數
         H = Wh.shape[0]  # Wh.shape[0]的輸出為Wh的列，對應的是xs的T
         self.layers = []
         hs = np.empty((N, B, H), dtype='f')
@@ -223,15 +223,16 @@ class TimeConnection:
 
 
 class TimeAffine:
-    def __init__(self, W, b, c):
-        self.params = [W, b]
-        self.grads = [np.zeros_like(W), np.zeros_like(b)]
+    def __init__(self, W, b, c, st, gamma):
+        self.params = [W, b, c]
+        self.grads = [np.zeros_like(W), np.zeros_like(b), np.zeros_like(c)]
         self.x = None
-        self.transition = c
+        self.transition = sigmoid_st(st, gamma, c)
 
-    def forward(self, x, st, gamma, c):
+    def forward(self, x, st, gamma):
         BT, N = x.shape
-        W, b = self.params
+        W, b, c = self.params
+        tran= self.transition
         O = b.shape[1] / 2
         Wn, Wst = W[:, :O], W[:, O:2*O]
         bn, bst = b[:, :O], b[:, O:2*O]
@@ -242,21 +243,31 @@ class TimeAffine:
         self.x = x
         return out  # .reshape(N, T, -1)
 
-    def backward(self, dout):
+    def backward(self, gamma, dout):
         x = self.x
-        N, T, D = x.shape
+        tran= self.transition
+        BT, O = x.shape
         W, b = self.params
 
-        dout = dout.reshape(N*T, -1)
-        rx = x.reshape(N*T, -1)
+        # dout = dout.reshape(N*T, -1)
+        # rx = x.reshape(N*T, -1)
+        db = np.zeros_like(b)
+        dW = np.zeros_like(W)
 
-        db = np.sum(dout, axis=0)
-        dW = np.dot(rx.T, dout)
-        dx = np.dot(dout, W.T)
+        db[:, :O] = np.sum(dout, axis=0)
+        db[:, O:2*O] = np.sum(np.dot(dout.T, tran), axis=0)
+        dW[:, :O] = np.dot(x.T, dout)
+        dW[:, O:2*O] = np.dot()  #有問題
+        d_temp = (1 / tran) -1
+        dc = np.dot(-(1 / tran)**2, d_temp.T) * gamma
+        d_temp = None
+
+        dx = np.dot(dout, W.T)  #有問題
         dx = dx.reshape(*x.shape)
 
         self.grads[0][...] = dW
         self.grads[1][...] = db
+        self.grads[2][...] = dc
 
         return dx
 
@@ -294,18 +305,26 @@ class TimeSoftmaxWithLoss:
         # loss /= mask.sum()
 
         # self.cache = (ts, ys, mask, (N, T, V))
-        self.cache = (ts, ys, avg_loss, (BT, O))
+        self.cache = (ts, ys, BT)
         return loss
 
     def backward(self, dout=1):
-        ts, ys, mask, (N, T, V) = self.cache
+        ts, ys, BT = self.cache
 
-        dx = ys
-        dx[np.arange(N * T), ts] -= 1
-        dx *= dout
-        dx /= mask.sum()
-        dx *= mask[:, np.newaxis]  
+        # loss對xs微分
+        dx = ys  # 
+        dx[np.arange(BT), ts] -= 1  # 選出dx的所有列中的正確值，並-1(因ts是一[1,0,0...]的矩陣，故最終只會有一個值)
+        dx = dx * dout  # 
 
-        dx = dx.reshape((N, T, V))
+
+        # ts, ys, mask, (N, T, V) = self.cache
+
+        # dx = ys
+        # dx[np.arange(N * T), ts] -= 1
+        # dx *= dout
+        # dx /= mask.sum()
+        # dx *= mask[:, np.newaxis]  
+
+        # dx = dx.reshape((N, T, V))
 
         return dx
