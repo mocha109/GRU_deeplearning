@@ -44,6 +44,34 @@ def DownloadStockID(industry='all', type='股票'):
         listed = listed[listed["產業別"] == industry]
 
     return listed
+listed= DownloadStockID()
+listed.head()
+
+
+#從yfinance抽取30筆
+def StockSample(idinfo):
+    stock_num =idinfo['有價證券代號']
+    stocks=(random.sample(list(stock_num),30))
+    df=yf.download(stocks,start="2000-01-01",end="2020-12-31")
+    data=df["Adj Close"][stocks]
+    print(data)
+    print(data.columns)
+    
+    return df
+data=StockSample(idinfo=listed)
+
+#刪除空值
+data=data.dropna(axis=0)
+
+
+#計算調整股價平均
+dataa=data.to_numpy()
+#test1=data.resample('M').sum()
+test2=data.resample('M').mean()
+#print(test1)
+print(test2)
+
+
 
 
 # 從YAHOO FINANC抓取資料
