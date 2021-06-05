@@ -5,9 +5,11 @@ def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
 def sigmoid_gru(x,gamma):
-    return 1 / (1 + np.exp(-gamma*x))
+    # 此GAMMA為一1*N矩陣
+    return 1 / (1 + np.exp(-gamma.T * x))
 
 def sigmoid_st(st,gamma,c):
+    # 此一GAMMA為純值
     return 1 / (1 + np.exp(-gamma*(st-c))) 
 
 

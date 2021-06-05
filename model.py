@@ -3,7 +3,14 @@ import pickle
 import numpy as np
 
 class Rnngru:
-    def __init__(self, st, gamma, var_size, batch_size, time_size,output_size, hidden_size=100):
+    '''
+    1.st : 轉換變數(1*BT)，為虛擬變數，用來衡量不同區間下同一變數是否會有不同的影響力
+    2.gamma : 標準差(1*N)，為各輸入變數的標準差，用於控制sigmoid形狀
+    3.st_gamma : 轉換變數標準差(純值)，功能與gamma相同
+    4.
+    '''
+    def __init__(self, st, gamma, st_gamma, var_size, batch_size, time_size,output_size, hidden_size=100):
+
         N, B, T, H, O = var_size, batch_size, time_size, output_size, hidden_size
         rn = np.random.randn
         
@@ -19,9 +26,9 @@ class Rnngru:
 
         #產生各層
         self.layers = [
-            TimeGRU(gru_Wx, gru_Wh, gru_b, stateful=True),
+            TimeGRU(gru_Wx, gru_Wh, gru_b, gamma, stateful=True),
             TimeConnection(shape_x=(N, B, T)),
-            TimeAffine(affine_W, affine_b, affine_c, st, gamma)
+            TimeAffine(affine_W, affine_b, affine_c, st, st_gamma)
         ]
         self.loss_layer = TimeSoftmaxWithLoss(batch_size = B)
         self.gru_layer = self.layers[0]
