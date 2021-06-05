@@ -3,40 +3,6 @@ from layers import *
 from function import softmax, sigmoid_gru, sigmoid_st
 import numpy as np
 
-#jerry請看這，我在想TimeEmbedding的W是否形狀不應和gru相同，一開始輸入的資料應該是T*D(T是期數、D是同一總經變數的不同形式)
-class TimeEmbedding:
-    def __init__(self, W):
-        self.params = [W]
-        self.grads = [np.zeros_like(W)]
-        self.layers = None
-        self.W = W
-
-    def forward(self, xs):
-        N, T = xs.shape
-        V, D = self.W.shape
-
-        out = np.empty((N, T, D), dtype='f')
-        self.layers = []
-
-        for t in range(T):
-            layer = Embedding(self.W)
-            out[:, t, :] = layer.forward(xs[:, t])
-            self.layers.append(layer)
-
-        return out
-
-    def backward(self, dout):
-        N, T, D = dout.shape
-
-        grad = 0
-        for t in range(T):
-            layer = self.layers[t]
-            layer.backward(dout[:, t, :])
-            grad += layer.grads[0]
-
-        self.grads[0][...] = grad
-
-        return None
 
 class GRU:
     """
@@ -160,8 +126,9 @@ class TimeGRU:
         1
         '''
         Wx, Wh, b = self.params
-        N, B, H = dhs.shape
-        T = Wx.shape[0]
+        N, B, T = dhs.shape
+        # N, B, H = dhs.shape
+        # T = Wx.shape[0]
 
         dxs = np.empty((N, B, T), dtype='f')
 
@@ -195,8 +162,8 @@ class TimeGRU:
 
 
 class TimeConnection:
-    def __init__(self, shape_x):
-        self.N, self.B, self.T = shape_x
+    def __init__(self, x):
+        self.N, self.B, self.T = x.shape
         self.x = np.zeros((self.N, self.B * self.T), dtype='f')
         self.dx = None
     
@@ -204,11 +171,10 @@ class TimeConnection:
         N, B, T = self.N, self.B, self.T
         x.reshape(N, B * T)
         
-        # if (self.x == np.zeros((B * T), dtype='f')).any():
         self.x = x[:,0]
-        # else:
+
         for t in range(1, B*T):
-            self.x = np.vstack((self.x, x[:,t]))
+            self.x = np.vstack((self.x, x[:,t]))  # BT*N
         
         return self.x
     
@@ -216,9 +182,9 @@ class TimeConnection:
         N, B, T = self.N, self.B, self.T
         self.dx = dx[:,0]
         for n in range(1, N):
-            self.dx = np.vstack(self.x, dx[:,n])
+            self.dx = np.vstack(self.x, dx[:,n])  # N*BT
 
-        return self.dx
+        return self.dx.reshpae(N, B, T)
 
 
 
@@ -227,43 +193,41 @@ class TimeAffine:
         self.params = [W, b, c]
         self.grads = [np.zeros_like(W), np.zeros_like(b), np.zeros_like(c)]
         self.x = None
-        self.transition = sigmoid_st(st, gamma, c)
 
     def forward(self, x, st, gamma):
         BT, N = x.shape
         W, b, c = self.params
-        tran= self.transition
         O = b.shape[1] / 2
         Wn, Wst = W[:, :O], W[:, O:2*O]
         bn, bst = b[:, :O], b[:, O:2*O]
-        tran= sigmoid_st(st, gamma, c)
+        self.transition = sigmoid_st(st, gamma, c)
 
-        # rx = x.reshape(N*B, -1)
-        out = np.dot(x, Wn) + bn + tran * (np.dot(x, Wst) + bst)
+
+        out = np.dot(x, Wn) + bn + self.transition.T * (np.dot(x, Wst) + bst)
         self.x = x
-        return out  # .reshape(N, T, -1)
+        return out
 
     def backward(self, gamma, dout):
         x = self.x
-        tran= self.transition
+        tran = self.transition
         BT, O = x.shape
         W, b = self.params
 
-        # dout = dout.reshape(N*T, -1)
-        # rx = x.reshape(N*T, -1)
         db = np.zeros_like(b)
         dW = np.zeros_like(W)
 
-        db[:, :O] = np.sum(dout, axis=0)
-        db[:, O:2*O] = np.sum(np.dot(dout.T, tran), axis=0)
-        dW[:, :O] = np.dot(x.T, dout)
-        dW[:, O:2*O] = np.dot()  #有問題
-        d_temp = (1 / tran) -1
-        dc = np.dot(-(1 / tran)**2, d_temp.T) * gamma
-        d_temp = None
+        db[:, :O] = np.sum(dout, axis=0)  # 1*O
+        db[:, O:2*O] = np.sum(tran.T * dout, axis=0)  # 1*O
+        dW[:, :O] = np.dot(x.T, dout)  # N*O
+        dW[:, O:2*O] = np.dot(dout.T, tran.T*x)  # N*O
+        dc_temp = (1 / tran) -1
+        dc = np.dum(np.dot(-(tran**2), dc_temp.T) * gamma, axis=0)  # 1*BT
+        dc_temp = None
 
-        dx = np.dot(dout, W.T)  #有問題
-        dx = dx.reshape(*x.shape)
+        dx_temp = np.dot(dout, W[:, :O].T)
+        dx = np.dot(tran.T * dout, W[:, O:2*O].T) + dx_temp  # BT*N
+        dx_temp = None
+        # dx = dx.reshape(*x.shape)
 
         self.grads[0][...] = dW
         self.grads[1][...] = db
@@ -287,24 +251,6 @@ class TimeSoftmaxWithLoss:
         avg_loss = toal_loss / B
 
 
-        # N, T, V = xs.shape
-
-        # if ts.ndim == 3: 
-        #     ts = ts.argmax(axis=2)
-
-        # mask = (ts != self.ignore_label)
-
-        # xs = xs.reshape(N * T, V)
-        # ts = ts.reshape(N * T)
-        # mask = mask.reshape(N * T)
-
-        # ys = softmax(xs)
-        # ls = np.log(ys[np.arange(N * T), ts])
-        # ls *= mask 
-        # loss = -np.sum(ls)
-        # loss /= mask.sum()
-
-        # self.cache = (ts, ys, mask, (N, T, V))
         self.cache = (ts, ys, BT)
         return loss
 
@@ -315,16 +261,5 @@ class TimeSoftmaxWithLoss:
         dx = ys  # 
         dx[np.arange(BT), ts] -= 1  # 選出dx的所有列中的正確值，並-1(因ts是一[1,0,0...]的矩陣，故最終只會有一個值)
         dx = dx * dout  # 
-
-
-        # ts, ys, mask, (N, T, V) = self.cache
-
-        # dx = ys
-        # dx[np.arange(N * T), ts] -= 1
-        # dx *= dout
-        # dx /= mask.sum()
-        # dx *= mask[:, np.newaxis]  
-
-        # dx = dx.reshape((N, T, V))
 
         return dx
