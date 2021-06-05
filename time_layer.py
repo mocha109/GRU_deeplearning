@@ -203,7 +203,7 @@ class TimeAffine:
         self.transition = sigmoid_st(st, gamma, c)
 
 
-        out = np.dot(x, Wn) + bn + self.transition.T * (np.dot(x, Wst) + bst)
+        out = np.dot(x, Wn) + bn + self.transition.T * (np.dot(x, Wst) + bst)  #BT*O
         self.x = x
         return out
 
@@ -227,7 +227,6 @@ class TimeAffine:
         dx_temp = np.dot(dout, W[:, :O].T)
         dx = np.dot(tran.T * dout, W[:, O:2*O].T) + dx_temp  # BT*N
         dx_temp = None
-        # dx = dx.reshape(*x.shape)
 
         self.grads[0][...] = dW
         self.grads[1][...] = db
@@ -240,7 +239,6 @@ class TimeSoftmaxWithLoss:
     def __init__(self):
         self.params, self.grads = [], []
         self.cache = None
-        # self.ignore_label = -1
 
     def forward(self, xs, ts, batch_size):
         BT, O = xs.shape
@@ -248,8 +246,7 @@ class TimeSoftmaxWithLoss:
         ys = softmax(xs)
         loss = -1 * np.log(ys) * ts
         toal_loss = np.sum(loss)
-        avg_loss = toal_loss / B
-
+        avg_loss = toal_loss / BT
 
         self.cache = (ts, ys, BT)
         return loss
