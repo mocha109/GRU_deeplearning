@@ -3,7 +3,7 @@ import pickle
 import numpy as np
 
 class Rnngru:
-    def __init__(self,st,gamma,var_size, batch_size, time_size,output_size, hidden_size=100):
+    def __init__(self, st, gamma, var_size, batch_size, time_size,output_size, hidden_size=100):
         N, B, T, H, O = var_size, batch_size, time_size, output_size, hidden_size
         rn = np.random.randn
         
@@ -13,18 +13,18 @@ class Rnngru:
         gru_b = np.zeros(4 * H).astype('f')
         affine_W = (rn(N, 2*O) / np.sqrt(N)).astype('f')
         affine_b = np.zeros(2*O).astype('f')
-        st_mean = np.mean(st)
-        affine_c = np.full(B*T, st_mean)
+        st_mean = np.mean(st).astype('f')
+        affine_c = np.full(B*T, st_mean).astype('f')
         
 
         #產生各層
         self.layers = [
-            TimeGRU(gru_Wx,gru_Wh,gru_b,stateful=True),
+            TimeGRU(gru_Wx, gru_Wh, gru_b, stateful=True),
             TimeConnection(shape_x=(N, B, T)),
-            TimeAffine(affine_W,affine_b,affine_c)
+            TimeAffine(affine_W, affine_b, affine_c, st, gamma)
         ]
-        self.loss_layer = TimeSoftmaxWithLoss()
-        self.gru_layer = self.layers[1]
+        self.loss_layer = TimeSoftmaxWithLoss(batch_size = B)
+        self.gru_layer = self.layers[0]
 
         #把所有權重與梯度整合成清單
         self.params, self.grads = [], []

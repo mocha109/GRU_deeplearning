@@ -162,8 +162,8 @@ class TimeGRU:
 
 
 class TimeConnection:
-    def __init__(self, x):
-        self.N, self.B, self.T = x.shape
+    def __init__(self, shape_x):
+        self.N, self.B, self.T = shape_x
         self.x = np.zeros((self.N, self.B * self.T), dtype='f')
         self.dx = None
     
@@ -191,23 +191,24 @@ class TimeConnection:
 class TimeAffine:
     def __init__(self, W, b, c, st, gamma):
         self.params = [W, b, c]
+        self.st, self.gamma = st, gamma
         self.grads = [np.zeros_like(W), np.zeros_like(b), np.zeros_like(c)]
         self.x = None
 
-    def forward(self, x, st, gamma):
+    def forward(self, x):
         BT, N = x.shape
         W, b, c = self.params
         O = b.shape[1] / 2
         Wn, Wst = W[:, :O], W[:, O:2*O]
         bn, bst = b[:, :O], b[:, O:2*O]
-        self.transition = sigmoid_st(st, gamma, c)
+        self.transition = sigmoid_st(self.st, self.gamma, c)
 
 
         out = np.dot(x, Wn) + bn + self.transition.T * (np.dot(x, Wst) + bst)  #BT*O
         self.x = x
         return out
 
-    def backward(self, gamma, dout):
+    def backward(self, dout):
         x = self.x
         tran = self.transition
         BT, O = x.shape
@@ -221,7 +222,7 @@ class TimeAffine:
         dW[:, :O] = np.dot(x.T, dout)  # N*O
         dW[:, O:2*O] = np.dot(dout.T, tran.T*x)  # N*O
         dc_temp = (1 / tran) -1
-        dc = np.dum(np.dot(-(tran**2), dc_temp.T) * gamma, axis=0)  # 1*BT
+        dc = np.dum(np.dot(-(tran**2), dc_temp.T) * self.gamma, axis=0)  # 1*BT
         dc_temp = None
 
         dx_temp = np.dot(dout, W[:, :O].T)
@@ -236,13 +237,14 @@ class TimeAffine:
 
 
 class TimeSoftmaxWithLoss:
-    def __init__(self):
+    def __init__(self, batch_size):
         self.params, self.grads = [], []
         self.cache = None
+        self.batch_size = batch_size
 
-    def forward(self, xs, ts, batch_size):
+    def forward(self, xs, ts):
         BT, O = xs.shape
-        B = batch_size
+        B = self.batch_size
         ys = softmax(xs)
         loss = -1 * np.log(ys) * ts
         toal_loss = np.sum(loss)
