@@ -1,8 +1,10 @@
 # import numpy
 import time
 import matplotlib.pyplot as plt
+import seaborn as sns
 from npTOcp import *  # import numpy as np
 from function import clip_grads
+import pandas as pd
 
 class RnnGRUTrainer:
     def __init__(self, model, optimizer):
@@ -141,13 +143,53 @@ class RnnGRUTrainer:
 
 
 def plot(self, max_epoch, ylim=None):
-        x = np.arange(len(self.ppl_list))
-        if ylim is not None:
-            plt.ylim(*ylim)
-        plt.plot(x, self.ppl_list, label='train')
-        plt.xlabel('epoch (x' + str(max_epoch) + ')')
-        plt.ylabel('perplexity')
-        plt.show()
+    x = np.arange(len(self.ppl_list))
+    if ylim is not None:
+        plt.ylim(*ylim)
+    plt.plot(x, self.ppl_list, label='train')
+    plt.xlabel('epoch (x' + str(max_epoch) + ')')
+    plt.ylabel('perplexity')
+    plt.show()
+
+
+def accuracy(self, batch_size, xs, ts, columns):
+    model = self.model
+    N, BT, O = ts.shape
+    accuracy = []
+    tsmax = np.arange(BT)
+    score = 0
+
+    batch_x = self.get_batch(xs, batch_size)
+    hs = model.predict(batch_x)
+    hs = np.argmax(hs, axis=1)
+
+    for n in range(len(ts)):
+        tsmax = np.argmax(ts[n], axis=1)
+        for t in range(BT):
+            if hs[t] == tsmax[t]:
+                score += 2
+            elif hs[t] > 3 and tsmax[t] > 3:
+                score += 0.5
+            elif hs[t] > 3 and tsmax[t] == 3:
+                score -= 0.5
+            elif hs[t] > 3 and tsmax[t] < 3:
+                score -= 1
+            
+            elif hs[t] == 3 and tsmax[t] != 3:
+                score -= 0.5
+            
+            elif hs[t] < 3 and tsmax[t] > 3:
+                score -= 1
+            elif hs[t] < 3 and tsmax[t] == 3:
+                score -= 0.5
+            elif hs[t] < 3 and tsmax[t] < 3:
+                score += 1
+        accuracy.append(round(score/BT,2))
+
+    plt.plot(columns, accuracy, label='Accuracy for each stock')
+    plt.xlabel('StockID')
+    plt.ylabel('Accuracy')
+    plt.show()
 
 
 # 這邊應該也不用大改
