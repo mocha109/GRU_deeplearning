@@ -35,7 +35,7 @@ trainer.plot(ylim=(0, 500))
 # 用測試資料評估
 model.reset_state()
 ppl_test = eval_perplexity(model, )
-print('test perplexity: ', )
+print('test perplexity: ', ppl_test)
 
 # 儲存參數
 model.save_params()
