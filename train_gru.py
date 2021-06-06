@@ -1,9 +1,8 @@
 import sys
 sys.path.append('..')
-from common.optimizer import SGD
-from common.trainer import GRUTrainer
-from common.util import eval_perplexity
-
+from optimizer import SGD
+from trainer import GRUTrainer
+from Dataframe import 
 from model import Rnngru
 
 
