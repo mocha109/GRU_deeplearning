@@ -48,8 +48,8 @@ class Rnngru:
 
     def forward(self, xs, ts):
         score = self.predict(xs)
-        loss = self.loss_layer.forward(score, ts)
-        return loss 
+        total_loss, avg_loss = self.loss_layer.forward(score, ts)
+        return total_loss, avg_loss
 
 
     def backward(self, dout=1):

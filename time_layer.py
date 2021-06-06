@@ -268,10 +268,10 @@ class TimeSoftmaxWithLoss:
         ys = softmax(xs)
         loss = -1 * np.log(ys) * ts
         toal_loss = np.sum(loss)
-        avg_loss = toal_loss / BT
+        avg_loss = toal_loss / B
 
         self.cache = (ts, ys, BT)
-        return loss
+        return avg_loss
 
     def backward(self, dout=1):
         ts, ys, BT = self.cache

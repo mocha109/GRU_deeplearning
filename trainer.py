@@ -1,59 +1,99 @@
-class RnnlmTrainer:
+# import numpy
+import time
+import matplotlib.pyplot as plt
+from npTOcp import *  # import numpy as np
+from function import clip_grads
+
+class RnnGRUTrainer:
     def __init__(self, model, optimizer):
         self.model = model
         self.optimizer = optimizer
         self.time_idx = None
         self.ppl_list = None
-        self.eval_interval = None
+        self.eval_interval = None  # what is this
         self.current_epoch = 0
+    
+    def get_batch(self, x, batch_size):
+        data_size, var_size = x.shape
+        time_size = data_size // batch_size
+        offsets = [i * time_size for i in range(batch_size)]  # 計算各變數的各批次開始載入的位置
 
+        batch_x = np.empty((var_size, batch_size, time_size), dtype='i')
+        batch_t = np.empty((var_size, batch_size, time_size), dtype='i')
+        
+        for var in range(var_size):
+            for i, offset in enumerate(offsets):
+                batch_x[var, i, :] = x[var, offset : offset + time_size]
+        return batch_x
 
-    def fit(self, xs, ts, max_epoch=10, time_size=35,
+    def fit(self, xs, single_ts, max_epoch=10, batch_size=20, time_size=35,
             max_grad=None, eval_interval=20):
         data_size = len(xs)
-        self.time_idx = 0
         self.ppl_list = []
         self.eval_interval = eval_interval
         model, optimizer = self.model, self.optimizer
-        total_loss = 0
-        loss_count = 0
 
         start_time = time.time()
         for epoch in range(max_epoch):
-            '''for iters in range(max_iters):
-                batch_x, batch_t = self.get_batch(xs, ts, batch_size, time_size)'''# 這段應該刪掉
+            
+            # 將資料形式整理為批次
+            batch_x = self.get_batch(xs, batch_size)
 
-                # 計算梯度，更新參數
-                loss = model.forward(batch_x, batch_t)# BATCH_X,T不存在，這邊有點難改
-                model.backward()
-                params, grads = remove_duplicate(model.params, model.grads) # 把共用的權重整合成一個
-                if max_grad is not None:
-                    clip_grads(grads, max_grad)
-                optimizer.update(params, grads)
-                total_loss += loss
-                loss_count += 1
+            # 計算梯度，更新參數
+            avg_loss = model.forward(batch_x, single_ts)# BATCH_X,T不存在，這邊有點難改
+            model.backward()
+            params, grads = model.params, model.grads
+            if max_grad is not None:  # 梯度裁減
+                clip_grads(grads, max_grad)
+            optimizer.update(params, grads)  # 梯度更新方式
 
-                # 評估困惑度 
-                if (eval_interval is not None) and (iters % eval_interval) == 0:
-                    ppl = np.exp(total_loss / loss_count)
-                    elapsed_time = time.time() - start_time
-                    print('| epoch %d |  iter %d / %d | time %d[s] | perplexity %.2f'
-                          % (self.current_epoch + 1, iters + 1, max_iters, elapsed_time, ppl))
-                    self.ppl_list.append(float(ppl))
-                    total_loss, loss_count = 0, 0
+            # 評估困惑度 
+            ppl = np.exp(avg_loss)
+            elapsed_time = time.time() - start_time
+            print('| epoch %d |  time %d[s] | perplexity %.2f'
+                    % (self.current_epoch + 1, elapsed_time, ppl))
+            self.ppl_list.append(float(ppl))
 
-        self.current_epoch += 1 # 這個應該是對應被刪掉的那層FOR迴圈，但那層可能須刪掉
+        self.current_epoch += 1
 
-    # 這段應該不用改
-    def plot(self, ylim=None):
+    def splot(self, max_epoch, ylim=None):
         x = numpy.arange(len(self.ppl_list))
         if ylim is not None:
             plt.ylim(*ylim)
         plt.plot(x, self.ppl_list, label='train')
-        plt.xlabel('iterations (x' + str(self.eval_interval) + ')')
+        plt.xlabel('epoch (x' + str(max_epoch) + ')')
         plt.ylabel('perplexity')
         plt.show()
+    
+    def multi_fit(self, xs, multi_ts, max_epoch=10, batch_size=20, time_size=35,
+            max_grad=None, eval_interval=20):
+        data_size = len(xs)
+        self.ppl_list = []
+        self.eval_interval = eval_interval
+        model, optimizer = self.model, self.optimizer
 
+        start_time = time.time()
+        for epoch in range(max_epoch):
+            
+            # 將資料形式整理為批次
+            batch_x = self.get_batch(xs, batch_size)
+
+            # 計算梯度，更新參數
+            avg_loss = model.forward(batch_x, multi_ts)# BATCH_X,T不存在，這邊有點難改
+            model.backward()
+            params, grads = model.params, model.grads
+            if max_grad is not None:  # 梯度裁減
+                clip_grads(grads, max_grad)
+            optimizer.update(params, grads)  # 梯度更新方式
+
+            # 評估困惑度 
+            ppl = np.exp(avg_loss)
+            elapsed_time = time.time() - start_time
+            print('| epoch %d |  time %d[s] | perplexity %.2f'
+                    % (self.current_epoch + 1, elapsed_time, ppl))
+            self.ppl_list.append(float(ppl))
+
+        self.current_epoch += 1
 
 # 這邊應該也不用大改
 def remove_duplicate(params, grads):
