@@ -14,6 +14,9 @@ class RnnGRUTrainer:
         # self.current_var = 0
     
     def get_batch(self, x, batch_size):
+        '''
+        用於將輸入的總經變數從BT*N格式轉為N*B*T格式
+        '''
         data_size, var_size = x.shape
         time_size = data_size // batch_size
         offsets = [i * time_size for i in range(batch_size)]  # 計算各變數的各批次開始載入的位置
@@ -27,6 +30,9 @@ class RnnGRUTrainer:
         return batch_x
 
     def single_fit(self, xs, single_ts, max_epoch=10, batch_size=20, max_grad=None):
+        '''
+        本函式僅適用單一股票模型訓練
+        '''
         data_size = len(xs)
         self.ppl_list = []
         model, optimizer = self.model, self.optimizer
@@ -57,7 +63,9 @@ class RnnGRUTrainer:
     
     def multi_fit(self, xs, multi_ts, max_epoch=10, batch_size=20, max_grad=None, wt_method='industry'):
         '''
-
+        本方法有2種調整權重方式，分別為industry、all_market :
+        1.industry : 適用於ts資料及全來自同一產業，此方法透過所有股票共用同一權重來找出此產業中的重要影響因素，並排除個別股票的獨特特徵
+        2.all_market : 適用於從所有股票中隨機選取的ts資料集，此方法為輪流以各股票訓練模型，最後將各股票的權重平均後導回模型中
         '''
         data_size, var_size = xs.shape
         self.ppl_list = []
