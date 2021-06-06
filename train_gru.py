@@ -2,7 +2,7 @@ import sys
 sys.path.append('..')
 from optimizer import SGD
 from trainer import GRUTrainer
-from Dataframe import 
+from DataFrame import 
 from model import Rnngru
 
 
