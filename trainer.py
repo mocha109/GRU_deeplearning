@@ -143,6 +143,9 @@ class RnnGRUTrainer:
 
 
 def plot(self, max_epoch, ylim=None):
+    '''
+    
+    '''
     x = np.arange(len(self.ppl_list))
     if ylim is not None:
         plt.ylim(*ylim)
@@ -153,6 +156,9 @@ def plot(self, max_epoch, ylim=None):
 
 
 def accuracy(self, batch_size, xs, ts, columns):
+    '''
+    滿分為200%
+    '''
     model = self.model
     N, BT, O = ts.shape
     accuracy = []
