@@ -63,12 +63,7 @@ listed
 def StockSample(idinfo):
     stock_num =idinfo['有價證券代號']
     stocks=(random.sample(list(stock_num),30))
-    #df=yf.download(stocks,start="2000-01-01",end="2020-12-31")
-    df=yf.download(stocks)#這裡可以添加日月參數
-    # 使用“期間”代替開始/結束
-        # 有效期間：1d,5d,1mo,3mo,6mo,1y,2y,5y,10y,ytd,max 
-        #（可選，默認為 '1mo'）
-        #period  =  "ytd"  
+    df=yf.download(stocks,interval = "1mo" )# 有效期間：1d,5d,1mo,3mo,6mo,1y,2y,5y,10y,ytd,max  
     data=df["Adj Close"][stocks]
     print(data)
     print(data.columns)
