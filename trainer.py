@@ -10,8 +10,8 @@ class RnnGRUTrainer:
         self.optimizer = optimizer
         self.time_idx = None
         self.ppl_list = None
-        self.eval_interval = None  # what is this
-        self.current_epoch = 0
+        # self.current_epoch = 0
+        # self.current_var = 0
     
     def get_batch(self, x, batch_size):
         data_size, var_size = x.shape
@@ -26,11 +26,9 @@ class RnnGRUTrainer:
                 batch_x[var, i, :] = x[var, offset : offset + time_size]
         return batch_x
 
-    def fit(self, xs, single_ts, max_epoch=10, batch_size=20, time_size=35,
-            max_grad=None, eval_interval=20):
+    def single_fit(self, xs, single_ts, max_epoch=10, batch_size=20, max_grad=None):
         data_size = len(xs)
         self.ppl_list = []
-        self.eval_interval = eval_interval
         model, optimizer = self.model, self.optimizer
 
         start_time = time.time()
@@ -40,7 +38,7 @@ class RnnGRUTrainer:
             batch_x = self.get_batch(xs, batch_size)
 
             # 計算梯度，更新參數
-            avg_loss = model.forward(batch_x, single_ts)# BATCH_X,T不存在，這邊有點難改
+            avg_loss = model.forward(batch_x, single_ts)
             model.backward()
             params, grads = model.params, model.grads
             if max_grad is not None:  # 梯度裁減
@@ -49,51 +47,100 @@ class RnnGRUTrainer:
 
             # 評估困惑度 
             ppl = np.exp(avg_loss)
-            elapsed_time = time.time() - start_time
+            epoch_time = time.time() - start_time
             print('| epoch %d |  time %d[s] | perplexity %.2f'
-                    % (self.current_epoch + 1, elapsed_time, ppl))
+                    % (epoch + 1, epoch_time, ppl))
             self.ppl_list.append(float(ppl))
 
-        self.current_epoch += 1
+            # self.current_epoch += 1
 
-    def splot(self, max_epoch, ylim=None):
-        x = numpy.arange(len(self.ppl_list))
+    
+    def multi_fit(self, xs, multi_ts, max_epoch=10, batch_size=20, max_grad=None, wt_method='industry'):
+        '''
+
+        '''
+        data_size, var_size = xs.shape
+        self.ppl_list = []
+        model, optimizer = self.model, self.optimizer
+        all_params = None
+        all_grads = None
+
+        # 將資料形式整理為批次
+        batch_x = self.get_batch(xs, batch_size)
+
+        start_time = time.time()
+        if wt_method == 'industry':
+            for epoch in range(max_epoch):
+
+                for varcount in range(var_size):
+                    single_ts = multi_ts[varcount]
+
+                    # 計算梯度，更新參數
+                    avg_loss = model.forward(batch_x, single_ts)
+                    model.backward()
+                    params, grads = model.params, model.grads
+                    if max_grad is not None:  # 梯度裁減
+                        clip_grads(grads, max_grad)
+                    optimizer.update(params, grads)  # 梯度更新方式
+
+                    # 評估困惑度 
+                    ppl = np.exp(avg_loss)
+                    elapsed_time = time.time() - start_time
+                    epoch_time = elapsed_time / (epoch+1)*(varcount+1)
+                    RestTime = epoch_time*(max_epoch*var_size) - elapsed_time
+                    RestTime = round(RestTime/3600, 2)
+                    print('| VarCount %d | Epoch %d |  Time %d[s] | RestTime %f[s] hours | Perplexity %.2f'
+                            % (varcount + 1, epoch + 1, elapsed_time, RestTime, ppl))
+                    self.ppl_list.append(float(ppl))
+        
+        elif wt_method == 'all_market':
+            for varcount in range(var_size):
+                single_ts = multi_ts[varcount]
+
+                for epoch in range(max_epoch):
+                    # 計算梯度，更新參數
+                    avg_loss = model.forward(batch_x, single_ts)
+                    model.backward()
+                    params, grads = model.params, model.grads
+                    if max_grad is not None:  # 梯度裁減
+                        clip_grads(grads, max_grad)
+                    optimizer.update(params, grads)  # 梯度更新方式
+
+                    # 評估困惑度 
+                    ppl = np.exp(avg_loss)
+                    elapsed_time = time.time() - start_time
+                    epoch_time = elapsed_time / (epoch+1)*(varcount+1)
+                    RestTime = epoch_time*(max_epoch*var_size) - elapsed_time
+                    RestTime = round(RestTime/3600, 2)
+                    print('| VarCount %d | Epoch %d |  Time %d[s] | RestTime %f[s] hours | Perplexity %.2f'
+                            % (varcount + 1, epoch + 1, elapsed_time, RestTime, ppl))
+                    self.ppl_list.append(float(ppl))
+                
+                # 將訓練完的權重平均
+                all_params += params
+                all_grads += grads
+            
+            # 將平均權重放回模型內部
+            model.params, model.grads = all_params/var_size, all_grads/var_size
+            all_params = None
+            all_grads = None
+        
+        else:
+            print('請輸入正確wt_method(可用選項 : industry、all_market)')
+            
+
+        print('模型訓練結束，總計耗時:{}'.format(time.time() - start_time))
+
+
+def plot(self, max_epoch, ylim=None):
+        x = np.arange(len(self.ppl_list))
         if ylim is not None:
             plt.ylim(*ylim)
         plt.plot(x, self.ppl_list, label='train')
         plt.xlabel('epoch (x' + str(max_epoch) + ')')
         plt.ylabel('perplexity')
         plt.show()
-    
-    def multi_fit(self, xs, multi_ts, max_epoch=10, batch_size=20, time_size=35,
-            max_grad=None, eval_interval=20):
-        data_size = len(xs)
-        self.ppl_list = []
-        self.eval_interval = eval_interval
-        model, optimizer = self.model, self.optimizer
 
-        start_time = time.time()
-        for epoch in range(max_epoch):
-            
-            # 將資料形式整理為批次
-            batch_x = self.get_batch(xs, batch_size)
-
-            # 計算梯度，更新參數
-            avg_loss = model.forward(batch_x, multi_ts)# BATCH_X,T不存在，這邊有點難改
-            model.backward()
-            params, grads = model.params, model.grads
-            if max_grad is not None:  # 梯度裁減
-                clip_grads(grads, max_grad)
-            optimizer.update(params, grads)  # 梯度更新方式
-
-            # 評估困惑度 
-            ppl = np.exp(avg_loss)
-            elapsed_time = time.time() - start_time
-            print('| epoch %d |  time %d[s] | perplexity %.2f'
-                    % (self.current_epoch + 1, elapsed_time, ppl))
-            self.ppl_list.append(float(ppl))
-
-        self.current_epoch += 1
 
 # 這邊應該也不用大改
 def remove_duplicate(params, grads):
