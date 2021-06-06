@@ -9,7 +9,7 @@ class Rnngru:
     3.st_gamma : 轉換變數標準差(純值)，功能與gamma相同
     4.
     '''
-    def __init__(self, st, gamma, st_gamma, var_size, batch_size, time_size,output_size, hidden_size=100):
+    def __init__(self, st, gamma, st_gamma, var_size, batch_size, time_size, output_size, hidden_size=100):
 
         N, B, T, H, O = var_size, batch_size, time_size, output_size, hidden_size
         rn = np.random.randn

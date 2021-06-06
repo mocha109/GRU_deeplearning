@@ -1,7 +1,7 @@
-import sys
-sys.path.append('..')
-from optimizer import SGD
-from trainer import GRUTrainer
+# import sys
+# sys.path.append('..')
+from optimizer import *
+from trainer import RnnGRUTrainer
 from DataFrame import 
 from model import Rnngru
 
@@ -20,20 +20,18 @@ max_grad =
 
 
 # 產生模型
-model = Rnngru(var_size, batch_size, time_size, output_size, hidden_size)
-optimizer = SGD(lr)
+model = Rnngru(st, gamma, st_gamma, var_size, batch_size, time_size, output_size, hidden_size)
+optimizer = Adam(lr)
 trainer = RnnGRUTrainer(model, optimizer)
 
 # 套用梯度裁減並學習
-trainer.fit(xs, single_ts, max_epoch=10, batch_size=20, time_size=35,
-            max_grad=None, eval_interval=20)
-trainer.multi_fit(xs, multi_ts, max_epoch=10, batch_size=20, time_size=35,
-            max_grad=None, eval_interval=20):
-trainer.plot(ylim=(0, 500))
+trainer.single_fit(xs, single_ts, max_epoch=10, batch_size=20, max_grad=None)
+trainer.multi_fit(xs, multi_ts, max_epoch=10, batch_size=20, max_grad=None, wt_method='industry')
+trainer.plot(max_epoch, ylim=(0, 500))
 
 # 用測試資料評估
 model.reset_state()
-ppl_test = eval_perplexity(model, )
+ppl_test = trainer.ppl_list
 print('test perplexity: ', ppl_test)
 
 # 儲存參數
