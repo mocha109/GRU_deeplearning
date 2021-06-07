@@ -44,3 +44,17 @@ def clip_grads(grads, max_norm):
     if rate < 1:
         for grad in grads:
             grad *= rate
+
+
+def cross_entropy_error(y, t):
+    if y.ndim == 1:
+        t = t.reshape(1, t.size)
+        y = y.reshape(1, y.size)
+        
+    # 訓練資料為one-hot向量時，轉換成正解標籤的索引值
+    if t.size == y.size:
+        t = t.argmax(axis=1)
+             
+    batch_size = y.shape[0]
+
+    return -np.sum(np.log(y[np.arange(batch_size), t] + 1e-7)) / batch_size
