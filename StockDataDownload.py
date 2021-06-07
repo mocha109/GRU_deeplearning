@@ -58,12 +58,12 @@ def DownloadStockID(industry='all', itype='股票', initial_time='2000-01-01'):
 
 
 #從yfinancen抽取30筆
-def StockSample(idinfo, interval = "1mo"):
+def StockSample(idinfo, interval = "1mo", st_amount=30):
     '''
     interval(有效期間_：1d,5d,1mo,3mo,6mo,1y,2y,5y,10y,ytd,max 
     '''
     stock_num =idinfo['有價證券代號']
-    stocks=(random.sample(list(stock_num),30))
+    stocks=(random.sample(list(stock_num),st_amount))
     df=yf.download(stocks,interval)
     data=df["Adj Close"][stocks]
   
@@ -71,13 +71,13 @@ def StockSample(idinfo, interval = "1mo"):
 
 
 #標籤
-def stocklabel(industry='all', itype='股票', interval= "1mo", initial_time= '2000-01-01'):
+def stocklabel(st_amount=30, industry='all', itype='股票', interval= "1mo", initial_time= '2000-01-01'):
     '''
     1.interval(有效期間_：1d,5d,1mo,3mo,6mo,1y,2y,5y,10y,ytd,max
-    2.initial_time為上市時間至少在指定時段就存在的公司
+    2.initial_time為上市時間至少在指定時段就存在的公司，並非返回資料的初始時間
     '''
     listed = DownloadStockID(industry, itype, initial_time)
-    data=StockSample(listed, interval)
+    data=StockSample(listed, interval, st_amount)
     
     #刪除空值
     data=data.dropna(axis=0)
