@@ -2,9 +2,9 @@
 # sys.path.append('..')
 from optimizer import *
 from trainer import RnnGRUTrainer
-from DataFrame import 
+from StockDataDownload import *
 from model import Rnngru
-
+from 
 
 #設定超參數
 batch_size = 
@@ -17,7 +17,7 @@ max_epoch =
 max_grad = 
 
 # 載入學習資料
-
+xs = 
 
 # 產生模型
 model = Rnngru(st, gamma, st_gamma, var_size, batch_size, time_size, output_size, hidden_size)
