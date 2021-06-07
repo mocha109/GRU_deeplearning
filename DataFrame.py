@@ -9,8 +9,6 @@ import time
 import random
 import os    # os : 專門負責文件或目錄處理的軟件
 import yfinance as yf
-from matplotlib import pyplot as plt
-from collections import Counter
 
 
 # 時間處理函數(yahoo finance時間為數值格式，因此不能直接輸入'2021-5-31'這類格式)
@@ -71,34 +69,53 @@ def StockSample(idinfo):
 data=StockSample(idinfo=listed)
 
 
-#刪除空值
-data=data.dropna(axis=0)
-data
+#標籤
+def stocklabel(industry='all', itype='股票'):
+    listed = DownloadStockID(industry, itype)
+    data=StockSample(idinfo=listed)
+    
+    #刪除空值
+    data=data.dropna(axis=0)
+    
+    #周期數移動索引
+    data=(data-data.shift(1))/data
+    data=data.dropna(axis=0)
+    
+    data['code']=0
+    
+    c= len(data.columns)-1
+    t = len(data)
+    clist = list(data.columns)[:-1]
 
-#周期數移動索引
-data1=(data-data.shift(1))/data
-data1
+    labels = np.arange(c*t*7).reshape(c,t,7)
+    labels = labels*0
+    
+    count_id = 0
 
-#轉numpy
-datanp=data1.to_numpy()
-datanp
+    for id in clist:
+        data['code'][data[id] < -0.1 ] = 0
+        data['code'][(data[id] >= -0.1) & (data[id] <-0.05)] = 1
+        data['code'][(data[id] >= -0.05) & (data[id] <-0.01)] = 2
+        data['code'][(data[id] >= -0.01) & (data[id] <0.01)] = 3
+        data['code'][(data[id] >= 0.01) & (data[id] <0.05)] = 4
+        data['code'][(data[id] >= 0.05) & (data[id] <0.1)] = 5
+        data['code'][data[id] > 0.1] = 6
+    
+        for time in range(t):
+            labels[count_id, time, int(data.iloc[time, list(data.columns).index('code')])] = 1
+    
+        count_id += 1
 
-
-
-
-#計算調整股價平均
-#test2=data.resample('M').mean()
-
-
-
-
+    return labels
+listed = stocklabel()
+listed
 
 # 從YAHOO FINANC抓取資料
 #def stock_load(stock_id, time_start=0, time_end=str(create_today_timestamp()), frequency='d'):
-    '''
-    1.frquency :　d(日)、wk(週)、mo(月)
-    2.time_start=0 在 yahoo finance中表示1970-1-1
-    '''
+ #   '''
+  #  1.frquency :　d(日)、wk(週)、mo(月)
+   # 2.time_start=0 在 yahoo finance中表示1970-1-1
+  #  '''
  #   url = "https://query1.finance.yahoo.com/v7/finance/download/" 
  #   url = url + stock_id + "?period1=" + str(time_start) + "&period2=" + str(time_end) + "&interval=1" + frequency +"&events=history&includeAdjustedClose=true"
 
@@ -107,15 +124,15 @@ datanp
 #  response = requests.get(url)
 #   df = pd.read_csv(StringIO(response.text),index_col = "Date",parse_dates = ["Date"])
 
-    return df
+ #   return df
 
 
 # 將資料進行載入與儲存(只處理單一變數)
 #def stock_data(stock_id, df1, DLaddress="D:\\StockData\\") :
-    '''
-    請在此輸入各位的股價儲存資料夾位置，以避免每次有人更新都要重找位置
-      mocha : D:\\StockData\\
-    '''
+#    '''
+#    請在此輸入各位的股價儲存資料夾位置，以避免每次有人更新都要重找位置
+#      mocha : D:\\StockData\\
+#    '''
     #舊資料讀取與新資料儲存
  #   address = DLaddress + stock_id + ".csv"
  #   if  os.path.isfile(address):
