@@ -1,3 +1,4 @@
+# %%
 import requests
 import pandas as pd
 import numpy as np
@@ -11,7 +12,7 @@ import yfinance as yf
 from matplotlib import pyplot as plt
 from collections import Counter
 
-
+# %%
 # 時間處理函數(yahoo finance時間為數值格式，因此不能直接輸入'2021-5-31'這類格式)
 def create_today_timestamp():
     '''
@@ -48,7 +49,7 @@ def DownloadStockID(industry='all', type='股票'):
     time_start = input("輸入日期 : ")
     listed = listed[listed["公開發行/上市(櫃)/發行日"] < datetime.datetime.strptime( str(time_start) , '%Y-%m-%d' )]
     return listed
-
+# %%
 listed= DownloadStockID()
 listed
 
@@ -58,7 +59,7 @@ listed
         #basetime=stockdata.truncate(before='2005-01-01')
         #print(df.truncate(before='2005-01-01'))
 
-
+# %%
 #從yfinance抽取30筆
 def StockSample(idinfo):
     stock_num =idinfo['有價證券代號']
@@ -69,7 +70,7 @@ def StockSample(idinfo):
     print(data.columns)
     
     return data
-
+# %%
 data=StockSample(idinfo=listed)
 
 
@@ -77,12 +78,19 @@ data=StockSample(idinfo=listed)
 data=data.dropna(axis=0)
 data
 
+# %%
 #周期數移動索引
 data=(data-data.shift(1))/data
 data=data.dropna(axis=0)
 data
-
+# %%
 b = np.arange(len(data)*len(data.columns)).reshape(len(data),len(data.columns))
-a = pd.DataFrame(b,index=data.index)
-a
-a['1'][data['2012.TW'] < 0.1] = 1
+b = pd.DataFrame(b,index=data.index)
+# %%
+data['code'] = 0
+# %%
+data['code'][data['2024.TW'] < 0.1] = 1
+data['code'][data['2024.TW'] > 0.1] = 2
+# %%
+data
+# %%
