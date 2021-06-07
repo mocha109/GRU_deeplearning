@@ -9,8 +9,7 @@ import random
 # os : 專門負責文件或目錄處理的軟件
 import os 
 import yfinance as yf
-from matplotlib import pyplot as plt
-from collections import Counter
+
 
 # %%
 # 時間處理函數(yahoo finance時間為數值格式，因此不能直接輸入'2021-5-31'這類格式)
@@ -76,21 +75,67 @@ data=StockSample(idinfo=listed)
 
 #刪除空值
 data=data.dropna(axis=0)
-data
+# data
 
 # %%
 #周期數移動索引
 data=(data-data.shift(1))/data
 data=data.dropna(axis=0)
-data
-# %%
-b = np.arange(len(data)*len(data.columns)).reshape(len(data),len(data.columns))
-b = pd.DataFrame(b,index=data.index)
+# data
+
 # %%
 data['code'] = 0
+
 # %%
-data['code'][data['2024.TW'] < 0.1] = 1
-data['code'][data['2024.TW'] > 0.1] = 2
+c = len(data.columns)-1
+t = len(data)
+clist = list(data.columns)[:-1]
+
+tsa = np.arange(c*t*7).reshape(c, t, 7)
+tsa = tsa * 0
+
+count_id = 0
+for id in clist:
+    data['code'][data[id] <= 0] = 6
+    data['code'][data[id] > 0] = 1
+
+    for time in range(t):
+        tsa[count_id, time, int(data.iloc[time, list(data.columns).index('code')])] = 1
+    
+    count_id += 1
+
 # %%
-data
+tsa
+#data['code']
+
+# %%
+def test(industry='all',itype='股票'):
+    listed = DownloadStockID(industry, itype)
+    data=StockSample(idinfo=listed)
+
+    data=data.dropna(axis=0)
+    #周期數移動索引
+    data=(data-data.shift(1))/data
+    data=data.dropna(axis=0)
+
+    data['code'] = 0
+
+    c = len(data.columns)-1
+    t = len(data)
+    clist = list(data.columns)[:-1]
+
+    tsa = np.arange(c*t*7).reshape(c, t, 7)
+    tsa = tsa * 0
+
+    count_id = 0
+    for id in clist:
+        data['code'][data[id] <= 0] = 6
+        data['code'][data[id] > 0] = 1
+
+        for time in range(t):
+            tsa[count_id, time, int(data.iloc[time, list(data.columns).index('code')])] = 1
+        
+        count_id += 1
+    
+    return tsa
 # %%
