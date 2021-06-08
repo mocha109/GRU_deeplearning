@@ -1,9 +1,11 @@
+# %%
 # import numpy
 import time
 import matplotlib.pyplot as plt
 import seaborn as sns
 from npTOcp import *  # import numpy as np
 from function import clip_grads
+from model import *
 import pandas as pd
 
 class RnnGRUTrainer:
@@ -31,9 +33,13 @@ class RnnGRUTrainer:
                 batch_x[var, i, :] = x[var, offset : offset + time_size]
         return batch_x
 
-    def single_fit(self, xs, single_ts, max_epoch=10, batch_size=20, max_grad=None):
+    def loadParams(self):
+        model = self.model
+        model.load_params()
+
+    def single_fit(self, xs, single_ts, max_epoch=10, batch_size=20, max_grad=None, saveP = False):
         '''
-        本函式僅適用單一股票模型訓練
+        本函式僅適用單一股票模型訓練，請輸入時確認資料型態
         '''
         data_size = len(xs)
         self.ppl_list = []
@@ -60,10 +66,11 @@ class RnnGRUTrainer:
                     % (epoch + 1, epoch_time, ppl))
             self.ppl_list.append(float(ppl))
 
-            # self.current_epoch += 1
+            if saveP:
+                model.save_params()
 
     
-    def multi_fit(self, xs, multi_ts, max_epoch=10, batch_size=20, max_grad=None, wt_method='industry'):
+    def multi_fit(self, xs, multi_ts, max_epoch=10, batch_size=20, max_grad=None, wt_method='industry', saveP = False):
         '''
         本方法有2種調整權重方式，分別為industry、all_market :
         1.industry : 適用於ts資料及全來自同一產業，此方法透過所有股票共用同一權重來找出此產業中的重要影響因素，並排除個別股票的獨特特徵
@@ -103,6 +110,9 @@ class RnnGRUTrainer:
                             % (varcount + 1, epoch + 1, elapsed_time, RestTime, ppl))
                     self.ppl_list.append(float(ppl))
         
+            if saveP:
+                    model.save_params()
+        
         elif wt_method == 'all_market':
             for varcount in range(var_size):
                 single_ts = multi_ts[varcount]
@@ -134,7 +144,10 @@ class RnnGRUTrainer:
             model.params, model.grads = all_params/var_size, all_grads/var_size
             all_params = None
             all_grads = None
-        
+            
+            if saveP:
+                model.save_params()
+            
         else:
             print('請輸入正確wt_method(可用選項 : industry、all_market)')
             
@@ -142,61 +155,69 @@ class RnnGRUTrainer:
         print('模型訓練結束，總計耗時:{}'.format(time.time() - start_time))
 
 
-def plot(self, max_epoch, ylim=None):
-    '''
-    
-    '''
-    x = np.arange(len(self.ppl_list))
-    if ylim is not None:
-        plt.ylim(*ylim)
-    plt.plot(x, self.ppl_list, label='train')
-    plt.xlabel('epoch (x' + str(max_epoch) + ')')
-    plt.ylabel('perplexity')
-    plt.show()
+    def plot(self, max_epoch, ylim=None):
+        '''
+        
+        '''
+        x = np.arange(len(self.ppl_list))
+        if ylim is not None:
+            plt.ylim(*ylim)
+        plt.plot(x, self.ppl_list, label='train')
+        plt.xlabel('epoch (x' + str(max_epoch) + ')')
+        plt.ylabel('perplexity')
+        plt.show()
 
 
-def accuracy(self, batch_size, xs, ts, columns):
-    '''
-    滿分為200%
-    '''
-    model = self.model
-    N, BT, O = ts.shape
-    accuracy = []
-    tsmax = np.arange(BT)
-    score = 0
+    def accuracy(self, batch_size, xs, ts, columns):
+        '''
+        滿分為200%
+        '''
+        model = self.model
+        N, BT, O = ts.shape
+        accuracy = []
+        tsmax = np.arange(BT)
+        score = 0
 
-    batch_x = self.get_batch(xs, batch_size)
-    hs = model.predict(batch_x)
-    hs = np.argmax(hs, axis=1)
+        batch_x = self.get_batch(xs, batch_size)
+        hs = model.predict(batch_x)
+        hs = np.argmax(hs, axis=1)
 
-    for n in range(len(ts)):
-        tsmax = np.argmax(ts[n], axis=1)
-        for t in range(BT):
-            if hs[t] == tsmax[t]:
-                score += 2
-            elif hs[t] > 3 and tsmax[t] > 3:
-                score += 0.5
-            elif hs[t] > 3 and tsmax[t] == 3:
-                score -= 0.5
-            elif hs[t] > 3 and tsmax[t] < 3:
-                score -= 1
-            
-            elif hs[t] == 3 and tsmax[t] != 3:
-                score -= 0.5
-            
-            elif hs[t] < 3 and tsmax[t] > 3:
-                score -= 1
-            elif hs[t] < 3 and tsmax[t] == 3:
-                score -= 0.5
-            elif hs[t] < 3 and tsmax[t] < 3:
-                score += 1
-        accuracy.append(round(score/BT,2))
+        for n in range(len(ts)):
+            tsmax = np.argmax(ts[n], axis=1)
+            for t in range(BT):
+                if hs[t] == tsmax[t]:
+                    score += 2
+                elif hs[t] > 3 and tsmax[t] > 3:
+                    score += 0.5
+                elif hs[t] > 3 and tsmax[t] == 3:
+                    score -= 0.5
+                elif hs[t] > 3 and tsmax[t] < 3:
+                    score -= 1
+                
+                elif hs[t] == 3 and tsmax[t] != 3:
+                    score -= 0.5
+                
+                elif hs[t] < 3 and tsmax[t] > 3:
+                    score -= 1
+                elif hs[t] < 3 and tsmax[t] == 3:
+                    score -= 0.5
+                elif hs[t] < 3 and tsmax[t] < 3:
+                    score += 1
+            accuracy.append(round(score/BT,2))
 
-    plt.plot(columns, accuracy, label='Accuracy for each stock')
-    plt.xlabel('StockID')
-    plt.ylabel('Accuracy')
-    plt.show()
+        plt.plot(columns, accuracy, label='Accuracy for each stock')
+        plt.xlabel('StockID')
+        plt.ylabel('Accuracy')
+        plt.show()
+        
+        return accuracy
 
+
+    def summary():
+        model = self.model
+        params = model.params
+
+        affine_nb = params
 
 # 這邊應該也不用大改
 def remove_duplicate(params, grads):

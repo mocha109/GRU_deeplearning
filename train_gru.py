@@ -3,7 +3,7 @@
 from optimizer import *
 from trainer import RnnGRUTrainer
 from StockDataDownload import *
-from model import Rnngru
+from model import *
 from 
 
 #設定超參數

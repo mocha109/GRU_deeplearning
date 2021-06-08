@@ -246,7 +246,7 @@ class TimeAffine:
         dc_temp = None
 
         dx_temp = np.dot(dout, W[:, :O].T)
-        dx = np.dot(tran.T * dout, W[:, O:2*O].T) + dx_temp  # BT*N
+        dx = (np.dot(tran.T * dout, W[:, O:2*O].T) + dx_temp)/2  # BT*N
         dx_temp = None
 
         self.grads[0][...] = dW
