@@ -142,6 +142,41 @@ ind_last = list(b.index).index(last_time_xs)
 a = a[:, (ind+1):(ind_last+1) , :]
 
 
+#讀總經資料
+def xs_data(file="C:\\Users\\user\\Desktop\\pyhton2\\datasets"):
+    address = []
+    a= None
+    file_name = os.listdir(file)
+
+    for i in range(len(file_name)):
+        add = "{}\\{}".format(file,file_name[i])
+        address.append(add)
+
+        for j in address:
+            xs=pd.read_csv(j,index_col=0)
+            
+
+            if a ==None: 
+                a= xs
+            else:
+                a = pd.concat([a,xs], axis=1)
+
+    a =a.dropna(axis=0)
+
+    return a 
+
+
+def xs_rolling(xs,roll=1,sh=1,axis=0):
+    
+    original=xs.rolling(window=roll,axis=axis).mean()
+    original=round((original-original.shift(sh))/original.shift(sh),4)
+    original =original.dropna(axis=0)
+    return original
+
+original=xs_rolling(a,roll=3)
+original
+
+
 
 
 # 從YAHOO FINANC抓取資料
