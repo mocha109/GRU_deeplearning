@@ -7,7 +7,6 @@ from io import StringIO
 import datetime
 import time
 import random
-import read_csv
 import os    # os : 專門負責文件或目錄處理的軟件
 import yfinance as yf
 
@@ -59,14 +58,14 @@ def DownloadStockID(industry='all', itype='股票', initial_time='2000-01-01'):
 
 
 #從yfinancen抽取30筆
-def StockSample(idinfo, interval = "1d", st_amount=30):
+def StockSample(idinfo, interval = "1d", st_amount=30, start='1990-01-01'):
     '''
     interval(有效期間_：1d,5d,1mo,3mo,6mo,1y,2y,5y,10y,ytd,max 
     '''
     stock_num =idinfo['有價證券代號']
     stocks=(random.sample(list(stock_num),st_amount))
-    df=yf.download(stocks,interval=interval,start='2000-01-01')
-    data=df["Adj Close"][stocks]
+    df=yf.download(stocks,interval=interval,start=start)
+    data=df["Adj Close"]
   
     return data
 
@@ -122,7 +121,7 @@ a,b = stocklabel()
 print(a)
 print(b)
 
-xs=pd.read_csv('#此指定xs路徑讀入')
+xs=pd.read_csv('C:\\Users\\z1244\\Desktop\\ECO_proset6\\data.csv')
 xs['Date']= pd.to_datetime(xs['Date']) 
 xs.set_index(['Date'],inplace=True)
 xs=xs.dropna(axis=1)
@@ -131,7 +130,7 @@ e=e.dropna(axis=0)
 
 
  #此暫時留下，但應該不需要
-''' 
+
 first_time_xs = e.index[0]
 first_time_xs=str(first_time_xs)
 ind = list(b.index).index(first_time_xs)
@@ -143,7 +142,7 @@ ind_last = list(b.index).index(last_time_xs)
 a = a[:, (ind+1):(ind_last+1) , :]
 
 
-'''
+
 
 # 從YAHOO FINANC抓取資料
 #def stock_load(stock_id, time_start=0, time_end=str(create_today_timestamp()), frequency='d'):
