@@ -7,6 +7,7 @@ from io import StringIO
 import datetime
 import time
 import random
+import read_csv
 import os    # os : 專門負責文件或目錄處理的軟件
 import yfinance as yf
 
@@ -58,20 +59,20 @@ def DownloadStockID(industry='all', itype='股票', initial_time='2000-01-01'):
 
 
 #從yfinancen抽取30筆
-def StockSample(idinfo, interval = "1mo", st_amount=30):
+def StockSample(idinfo, interval = "1d", st_amount=30):
     '''
     interval(有效期間_：1d,5d,1mo,3mo,6mo,1y,2y,5y,10y,ytd,max 
     '''
     stock_num =idinfo['有價證券代號']
     stocks=(random.sample(list(stock_num),st_amount))
-    df=yf.download(stocks,interval)
+    df=yf.download(stocks,interval=interval,start='2000-01-01')
     data=df["Adj Close"][stocks]
   
     return data
 
 
 #標籤
-def stocklabel(st_amount=30, industry='all', itype='股票', interval= "1mo", initial_time= '2000-01-01'):
+def stocklabel(st_amount=30, industry='all', itype='股票', interval= "1d", initial_time= '2000-01-01'):
     '''
     1.interval(有效期間_：1d,5d,1mo,3mo,6mo,1y,2y,5y,10y,ytd,max
     2.initial_time為上市時間至少在指定時段就存在的公司，並非返回資料的初始時間
@@ -83,8 +84,11 @@ def stocklabel(st_amount=30, industry='all', itype='股票', interval= "1mo", in
     data=data.dropna(axis=0)
     
     #周期數移動索引
-    data=(data-data.shift(1))/data
+    data=round((data-data.shift(1))/data.shift(1),4)
     data=data.dropna(axis=0)
+    
+    #將日資料平均成月資料
+    data = data.resample('MS').mean()
 
     ori_data = data.copy()
     data['code']=0
@@ -114,6 +118,32 @@ def stocklabel(st_amount=30, industry='all', itype='股票', interval= "1mo", in
 
     return labels, ori_data
 
+a,b = stocklabel()
+print(a)
+print(b)
+
+xs=pd.read_csv('#此指定xs路徑讀入')
+xs['Date']= pd.to_datetime(xs['Date']) 
+xs.set_index(['Date'],inplace=True)
+xs=xs.dropna(axis=1)
+e=pd.concat([xs,b],axis=1) #e為將b與xs合併之dataframe，並用來使a,b列數相同
+e=e.dropna(axis=0)
+
+
+ #此暫時留下，但應該不需要
+''' 
+first_time_xs = e.index[0]
+first_time_xs=str(first_time_xs)
+ind = list(b.index).index(first_time_xs)
+last_time_xs = e.index[len(e)-1]
+last_time_xs = str(last_time_xs)
+ind_last = list(b.index).index(last_time_xs)
+
+
+a = a[:, (ind+1):(ind_last+1) , :]
+
+
+'''
 
 # 從YAHOO FINANC抓取資料
 #def stock_load(stock_id, time_start=0, time_end=str(create_today_timestamp()), frequency='d'):
