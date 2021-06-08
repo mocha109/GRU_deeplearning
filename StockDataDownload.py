@@ -118,34 +118,35 @@ def stocklabel(st_amount=30, industry='all', itype='股票', interval= "1d", ini
     return labels, ori_data
 
 a,b = stocklabel()
+
+
+def alter_a (a=a,b=b):
+    xs=pd.read_csv('data.csv')
+    xs['Date']= pd.to_datetime(xs['Date']) 
+    xs.set_index(['Date'],inplace=True)
+    xs=xs.dropna(axis=1)
+    
+    
+    b1=b.index.strftime("%Y-%m-%d")
+    xs1=xs.index.strftime("%Y-%m-%d")
+     #此暫時留下，但應該不需要
+    
+    first_time_xs = xs1[0]
+    ind = list(b1).index(first_time_xs)
+    last_time_xs = xs1[-1]
+    ind_last = list(b1).index(last_time_xs)
+    
+    
+    a = a[:, (ind+1):(ind_last+2) , :]
+    return a
+
 print(a)
-print(b)
-
-xs=pd.read_csv('C:\\Users\\z1244\\Desktop\\ECO_proset6\\data.csv')
-xs['Date']= pd.to_datetime(xs['Date']) 
-xs.set_index(['Date'],inplace=True)
-xs=xs.dropna(axis=1)
-e=pd.concat([xs,b],axis=1) #e為將b與xs合併之dataframe，並用來使a,b列數相同
-e=e.dropna(axis=0)
-
-
- #此暫時留下，但應該不需要
-
-first_time_xs = e.index[0]
-first_time_xs=str(first_time_xs)
-ind = list(b.index).index(first_time_xs)
-last_time_xs = e.index[len(e)-1]
-last_time_xs = str(last_time_xs)
-ind_last = list(b.index).index(last_time_xs)
-
-
-a = a[:, (ind+1):(ind_last+1) , :]
 
 
 #讀總經資料
 def xs_data(file="C:\\Users\\user\\Desktop\\pyhton2\\datasets"):
     address = []
-    a= None
+    h= None
     file_name = os.listdir(file)
 
     for i in range(len(file_name)):
@@ -156,14 +157,14 @@ def xs_data(file="C:\\Users\\user\\Desktop\\pyhton2\\datasets"):
             xs=pd.read_csv(j,index_col=0)
             
 
-            if a ==None: 
-                a= xs
+            if h ==None: 
+                h= xs
             else:
-                a = pd.concat([a,xs], axis=1)
+                h = pd.concat([a,xs], axis=1)
 
-    a =a.dropna(axis=0)
+    h = h.dropna(axis=0)
 
-    return a 
+    return h 
 
 
 def xs_rolling(xs,roll=1,sh=1,axis=0):
