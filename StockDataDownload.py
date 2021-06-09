@@ -135,9 +135,17 @@ def alter_a(xs, labels, ori_data, st):
     '''
     
     # 統一xs與ori_data的index格式以方便對比
-    b1=list(ori_data.index.strftime("%Y-%m-%d"))
-    xs1=list(xs.index.strftime("%Y-%m-%d"))
-    st1 = list(st.index.strftime("%Y-%m-%d"))
+    ori_data.reset_index(inplace=True)
+    xs.reset_index(inplace=True)
+    st.reset_index(inplace=True)
+    
+    b1 = ori_data['Date'].strftime("%Y-%m-%d")
+    xs1 = xs['Date'].strftime("%Y-%m-%d")
+    st1 = st['Date'].strftime("%Y-%m-%d")
+
+    ori_data.set_index('Date',inplace=True)
+    xs.set_index('Date',inplace=True)
+    st.set_index('Date',inplace=True)
 
     # xs要慢label一期，因此當兩者的最新日期相同時，xs要向前移一期
     if xs1[-1] == b1[-1]:
@@ -174,6 +182,7 @@ def xs_data(file="C:\\Users\\user\\Desktop\\pyhton2\\datasets"):
     '''
     address = []
     first= None
+    count = 0
     file_name = os.listdir(file)
 
     for i in range(len(file_name)):
@@ -182,16 +191,16 @@ def xs_data(file="C:\\Users\\user\\Desktop\\pyhton2\\datasets"):
 
         for j in address:
             if j != "{}\\st.csv".format(file):
-                xs = pd.read_csv(j,index_col=0)
+                xs = pd.read_csv(j,index_col=0, header=0, parse_dates=['Date'])
                 
-                if first ==None: 
+                if count == 0: 
                     first= xs
+                    count = count + 1
                 else:
-                    first = pd.concat([a,xs], axis=1)
+                    first = pd.concat([first,xs], axis=1)
             else:
                 st = pd.read_csv(j,index_col=0, usecols=[0, 1],
-                                 header=0, names=["Date", 'st'],
-                                 parse_dates=['Date'])
+                                 header=0,parse_dates=['Date'])
 
     first = first.dropna(axis=0)
 
@@ -218,8 +227,8 @@ def PdNp(xs, pdTOnp = True):
 
 
 def TestValidate(xs, labels, ori_date, st, test_size, batch_size):
-    print('目前資料總長度為:\ntest : {}，validate : {}\nNOTE:設定時請注意validate長度一定要可被batch_size整除'.format(len(xs[:test_size]), len(xs[test_size:]))
-    confirm = input("請確認您的test_size，確定是否要繼續執行訓練資料集切割(Y/N):")
+    print('目前資料總長度為:\ntest : {}，validate : {}\nNOTE:設定時請注意validate長度一定要可被batch_size整除'.format(len(xs[:test_size]), len(xs[test_size:])))
+    confirm = input("請確認您的test_size，確定是否要繼續執行訓練資料集切割(Y/N): ")
 
     if confirm == 'Y':
         if len(xs[test_size:]) % batch_size == 0:

@@ -1,4 +1,5 @@
-from npTOcp import *  # import numpy as np (or import cupy as np)
+# from npTOcp import *  # import numpy as np (or import cupy as np)
+import numpy as np
 from layers import *
 from function import softmax, sigmoid_gru, sigmoid_st
 

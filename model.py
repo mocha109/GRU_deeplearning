@@ -1,6 +1,7 @@
 from time_layer import *
 import pickle
-from npTOcp import *  # import numpy as np
+# from npTOcp import *
+import numpy as np
 
 class Rnngru:
     '''

@@ -3,7 +3,8 @@
 import time
 import matplotlib.pyplot as plt
 import seaborn as sns
-from npTOcp import *  # import numpy as np
+# from npTOcp import *  # import numpy as np
+import numpy as np
 from function import clip_grads
 from model import *
 import pandas as pd
@@ -17,7 +18,7 @@ class RnnGRUTrainer:
         # self.current_epoch = 0
         # self.current_var = 0
     
-    def get_batch(self, x, batch_size):
+    def get_batch(self, x, batch_size, time_size):
         '''
         用於將輸入的總經變數從BT*N格式轉為N*B*T格式
         '''
@@ -217,7 +218,7 @@ class RnnGRUTrainer:
         model = self.model
         params = model.params
 
-        affine_nb = params
+        affine_nw = params[2,]
 
 # 這邊應該也不用大改
 def remove_duplicate(params, grads):

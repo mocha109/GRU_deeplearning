@@ -1,6 +1,7 @@
 # coding: utf-8
-from npTOcp import *  # import numpy as np
-from config import GPU
+# from npTOcp import *
+import numpy as np
+# from config import GPU
 from function import softmax, cross_entropy_error
 
 class Affine:

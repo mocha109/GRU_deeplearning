@@ -1,4 +1,5 @@
-from npTOcp import *
+#from npTOcp import *
+import numpy as np
 
 
 def sigmoid(x):
