@@ -71,23 +71,32 @@ def StockSample(idinfo, interval = "1d", st_amount=30, start='1990-01-01'):
 
 
 #標籤
-def stocklabel(st_amount=30, industry='all', itype='股票', interval= "1d", initial_time= '2000-01-01'):
+def stocklabel(st_amount=30, return_data = 1, industry='all', itype='股票', interval= "1d", initial_time= '2000-01-01', start='1990-01-01'):
     '''
-    1.interval(有效期間_：1d,5d,1mo,3mo,6mo,1y,2y,5y,10y,ytd,max
-    2.initial_time為上市時間至少在指定時段就存在的公司，並非返回資料的初始時間
+    1.interval       :(有效期間_：1d,5d,1mo,3mo,6mo,1y,2y,5y,10y,ytd,max (有問題，暫時別調整此參數)，default='1d'
+    2.initial_time   :為上市時間至少在指定時段就存在的公司，並非返回資料的初始時間，default='2000-01-01'
+    3.start          :為yfinance下載資料的起始時段，default='1990-01-01'
+    4.st_amount      :用於調整一次抓取的股票數量，default=30
+    5.return_data    :用於調整您要計算的股票報酬率為幾日報酬率，default=1
+    6.itype          :選擇您要下載的資料為股票或其他金融資料，default='股票'
+    7.industry       :選擇您希望下載的產業，default='all'
     '''
     listed = DownloadStockID(industry, itype, initial_time)
-    data=StockSample(listed, interval, st_amount)
+    data=StockSample(listed, interval, st_amount, start)
     
     #刪除空值
     data=data.dropna(axis=0)
     
-    #周期數移動索引
-    data=round((data-data.shift(1))/data.shift(1),4)
-    data=data.dropna(axis=0)
+    # #計算報酬率
+    # data=round((data-data.shift(return_data))/data.shift(return_data),4)
+    # data=data.dropna(axis=0)
     
     #將日資料平均成月資料
     data = data.resample('MS').mean()
+
+    #計算報酬率
+    data=round((data-data.shift(return_data))/data.shift(return_data),4)
+    data=data.dropna(axis=0)
 
     ori_data = data.copy()
     data['code']=0
@@ -117,34 +126,44 @@ def stocklabel(st_amount=30, industry='all', itype='股票', interval= "1d", ini
 
     return labels, ori_data
 
-a,b = stocklabel()
 
 
-def alter_a (a=a,b=b):
-    xs=pd.read_csv('data.csv')
-    xs['Date']= pd.to_datetime(xs['Date']) 
-    xs.set_index(['Date'],inplace=True)
-    xs=xs.dropna(axis=1)
+def alter_a(xs,labels,ori_data):
+    '''
+    1.將xs與標籤資料對期
+    2.labels,ori_data來自stocklabel函數
+    '''
     
-    
-    b1=b.index.strftime("%Y-%m-%d")
-    xs1=xs.index.strftime("%Y-%m-%d")
-     #此暫時留下，但應該不需要
-    
-    first_time_xs = xs1[0]
-    ind = list(b1).index(first_time_xs)
-    last_time_xs = xs1[-1]
-    ind_last = list(b1).index(last_time_xs)
-    
-    
-    a = a[:, (ind+1):(ind_last+2) , :]
-    return a
+    # 統一xs與ori_data的index格式以方便對比
+    b1=list(ori_data.index.strftime("%Y-%m-%d"))
+    xs1=list(xs.index.strftime("%Y-%m-%d"))
 
-print(a)
+    # xs要慢label一期，因此當兩者的最新日期相同時，xs要向前移一期
+    if xs1[-1] == b1[-1]:
+        xs = xs[:-1]
+        xs1 = xs1[:-1]
+    
+        first_time_xs = xs1[0]
+        ind = b1.index(first_time_xs)
+        
+        labels = labels[:, (ind+1): , :]
+
+    else:
+        first_time_xs = xs1[0]
+        ind = b1.index(first_time_xs)
+        last_time_xs = xs1[-1]
+        ind_last = b1.index(last_time_xs)
+        
+        labels = labels[:, (ind+1):(ind_last+2) , :]
+
+    return labels
 
 
 #讀總經資料
 def xs_data(file="C:\\Users\\user\\Desktop\\pyhton2\\datasets"):
+    '''
+    file為您存放總體經濟資料的資料夾位置，請注意資料夾內只能有csv檔
+    '''
     address = []
     h= None
     file_name = os.listdir(file)
@@ -168,15 +187,16 @@ def xs_data(file="C:\\Users\\user\\Desktop\\pyhton2\\datasets"):
 
 
 def xs_rolling(xs,roll=1,sh=1,axis=0):
+    '''
+    1.xs資料格式為dataframe
+    2.將資料進行平滑並計算報酬率
+    '''
     
     original=xs.rolling(window=roll,axis=axis).mean()
     original=round((original-original.shift(sh))/original.shift(sh),4)
     original =original.dropna(axis=0)
+
     return original
-
-original=xs_rolling(a,roll=3)
-original
-
 
 
 
