@@ -128,7 +128,7 @@ def stocklabel(st_amount=30, return_data = 1, industry='all', itype='股票', in
 
 
 
-def alter_a(xs,labels,ori_data):
+def alter_a(xs, labels, ori_data, st):
     '''
     1.將xs與標籤資料對期
     2.labels,ori_data來自stocklabel函數
@@ -137,15 +137,20 @@ def alter_a(xs,labels,ori_data):
     # 統一xs與ori_data的index格式以方便對比
     b1=list(ori_data.index.strftime("%Y-%m-%d"))
     xs1=list(xs.index.strftime("%Y-%m-%d"))
+    st1 = list(st.index.strftime("%Y-%m-%d"))
 
     # xs要慢label一期，因此當兩者的最新日期相同時，xs要向前移一期
     if xs1[-1] == b1[-1]:
         xs = xs[:-1]
+        ori_data = ori_data[:-1]
+        st = st[:-1]
         xs1 = xs1[:-1]
     
         first_time_xs = xs1[0]
         ind = b1.index(first_time_xs)
-        
+        ind_s = st.index(first_time_xs)
+
+        st = st[ind_s:]
         labels = labels[:, (ind+1): , :]
 
     else:
@@ -153,10 +158,13 @@ def alter_a(xs,labels,ori_data):
         ind = b1.index(first_time_xs)
         last_time_xs = xs1[-1]
         ind_last = b1.index(last_time_xs)
+        ind_s = st.index(first_time_xs)
+        ind_ls = st.index(last_time_xs)
         
+        st = st[ind_s:ind_ls]
         labels = labels[:, (ind+1):(ind_last+2) , :]
 
-    return labels
+    return xs, labels, ori_data, st
 
 
 #讀總經資料
@@ -165,7 +173,7 @@ def xs_data(file="C:\\Users\\user\\Desktop\\pyhton2\\datasets"):
     file為您存放總體經濟資料的資料夾位置，請注意資料夾內只能有csv檔
     '''
     address = []
-    h= None
+    first= None
     file_name = os.listdir(file)
 
     for i in range(len(file_name)):
@@ -173,17 +181,21 @@ def xs_data(file="C:\\Users\\user\\Desktop\\pyhton2\\datasets"):
         address.append(add)
 
         for j in address:
-            xs=pd.read_csv(j,index_col=0)
-            
-
-            if h ==None: 
-                h= xs
+            if j != "{}\\st.csv".format(file):
+                xs = pd.read_csv(j,index_col=0)
+                
+                if first ==None: 
+                    first= xs
+                else:
+                    first = pd.concat([a,xs], axis=1)
             else:
-                h = pd.concat([a,xs], axis=1)
+                st = pd.read_csv(j,index_col=0, usecols=[0, 1],
+                                 header=0, names=["Date", 'st'],
+                                 parse_dates=['Date'])
 
-    h = h.dropna(axis=0)
+    first = first.dropna(axis=0)
 
-    return h 
+    return first, st
 
 
 def xs_rolling(xs,roll=1,sh=1,axis=0):
@@ -198,6 +210,11 @@ def xs_rolling(xs,roll=1,sh=1,axis=0):
 
     return original
 
+
+def PdNp(xs, pdTOnp = True):
+    xs = xs.to_numpy()
+
+    return xs
 
 
 # 從YAHOO FINANC抓取資料
