@@ -217,6 +217,33 @@ def PdNp(xs, pdTOnp = True):
     return xs
 
 
+def TestValidate(xs, labels, ori_date, st, test_size, batch_size):
+    print('目前資料總長度為:\ntest : {}，validate : {}\nNOTE:設定時請注意validate長度一定要可被batch_size整除'.format(len(xs[:test_size]), len(xs[test_size:]))
+    confirm = input("請確認您的test_size，確定是否要繼續執行訓練資料集切割(Y/N):")
+
+    if confirm == 'Y':
+        if len(xs[test_size:]) % batch_size == 0:
+            minus = (len(xs[:test_size]) % batch_size)-1
+
+            xs_test = xs[minus:test_size]
+            xs_validate = xs[test_size:]
+            labels_test = labels[:, minus:test_size, :]
+            labels_validate = labels[:, test_size: , :]
+            ori_date_test = ori_date[minus:test_size]
+            ori_date_validate = ori_date[test_size:]
+            st_test = st[minus:test_size]
+            st_validate = st[test_size:]
+            
+            print('目前資料總長度為test : {}，validate : {}'.format(len(xs_test), len(xs_validate)))
+
+            return xs_test, labels_test, ori_date_test, st_test, xs_validate, labels_validate, ori_date_validate, st_validate
+        
+        else:
+            print("中斷執行，請確認驗證集資料筆數可被batch_size整除")
+    
+    else:
+        print("中斷執行，請確認訓練集大小後重新執行本函數")
+
 # 從YAHOO FINANC抓取資料
 #def stock_load(stock_id, time_start=0, time_end=str(create_today_timestamp()), frequency='d'):
  #   '''
