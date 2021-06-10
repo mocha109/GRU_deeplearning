@@ -18,7 +18,7 @@ class RnnGRUTrainer:
         # self.current_epoch = 0
         # self.current_var = 0
     
-    def get_batch(self, x, batch_size, time_size):
+    def get_batch(self, x, batch_size):
         '''
         用於將輸入的總經變數從BT*N格式轉為N*B*T格式
         '''
@@ -26,12 +26,12 @@ class RnnGRUTrainer:
         time_size = data_size // batch_size
         offsets = [i * time_size for i in range(batch_size)]  # 計算各變數的各批次開始載入的位置
 
-        batch_x = np.empty((var_size, batch_size, time_size), dtype='i')
-        batch_t = np.empty((var_size, batch_size, time_size), dtype='i')
+        batch_x = np.empty((var_size, batch_size, time_size), dtype='f')
+        batch_t = np.empty((var_size, batch_size, time_size), dtype='f')
         
         for var in range(var_size):
             for i, offset in enumerate(offsets):
-                batch_x[var, i, :] = x[var, offset : offset + time_size]
+                batch_x[var, i, :] = x[offset : offset + time_size, var]
         return batch_x
 
     def loadParams(self):

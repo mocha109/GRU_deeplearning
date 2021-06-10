@@ -120,7 +120,7 @@ class TimeGRU:
 
         # 將所有期的GRU連結
         for b in range(B):
-            layer = GRU(self.params, self.gamma)  # *參數 : 用於接收實際呼叫函數時，所有多出來的引數會被打包為tuple給該參數
+            layer = GRU(Wx= self.params[0], Wh= self.params[1], b= self.params[2], gamma = self.gamma)  # *參數 : 用於接收實際呼叫函數時，所有多出來的引數會被打包為tuple給該參數
             self.h = layer.forward(xs[:, b, :], self.h)  # xs[:, b, :]的輸出為所有變數的第b批次，結果會另外組成一個新N*T的array
             hs[:, b, :] = self.h
             self.layers.append(layer)

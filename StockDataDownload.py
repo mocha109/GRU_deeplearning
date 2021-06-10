@@ -1,5 +1,6 @@
 # coding: utf-8
 # 資料標籤
+import sys
 import requests
 import pandas as pd
 import numpy as np
@@ -135,42 +136,44 @@ def alter_a(xs, labels, ori_data, st):
     '''
     
     # 統一xs與ori_data的index格式以方便對比
-    ori_data.reset_index(inplace=True)
-    xs.reset_index(inplace=True)
-    st.reset_index(inplace=True)
-    
-    b1 = ori_data['Date'].strftime("%Y-%m-%d")
-    xs1 = xs['Date'].strftime("%Y-%m-%d")
-    st1 = st['Date'].strftime("%Y-%m-%d")
+    ori_data.index = pd.to_datetime(ori_data.index, format="%Y-%m-%d")
+    xs.index = pd.to_datetime(xs.index, format="%Y-%m-%d")
+    st.index = pd.to_datetime(st.index, format="%Y-%m-%d")
 
-    ori_data.set_index('Date',inplace=True)
-    xs.set_index('Date',inplace=True)
-    st.set_index('Date',inplace=True)
+    b1 = list(ori_data.index.strftime("%Y-%m-%d"))
+    xs1 = list(xs.index.strftime("%Y-%m-%d"))
+    st1 = list(st.index.strftime("%Y-%m-%d"))
 
     # xs要慢label一期，因此當兩者的最新日期相同時，xs要向前移一期
     if xs1[-1] == b1[-1]:
-        xs = xs[:-1]
-        ori_data = ori_data[:-1]
-        st = st[:-1]
-        xs1 = xs1[:-1]
-    
-        first_time_xs = xs1[0]
-        ind = b1.index(first_time_xs)
-        ind_s = st.index(first_time_xs)
-
-        st = st[ind_s:]
-        labels = labels[:, (ind+1): , :]
+        if len(xs1) < len(b1):
+            fxsday = 0
+            foriday = b1.index(xs1[0])
+            labels = labels[:, (foriday+1): , :]
+        else:
+            fxsday = xs1.index(b1[0])
+            foriday = 0
+            labels = labels[:, (foriday+1): , :]
+        
+        xs = xs[fxsday:-1]
+        ori_data = ori_data[foriday:-1]
+        st = st[fxsday:-1]
 
     else:
-        first_time_xs = xs1[0]
-        ind = b1.index(first_time_xs)
-        last_time_xs = xs1[-1]
-        ind_last = b1.index(last_time_xs)
-        ind_s = st.index(first_time_xs)
-        ind_ls = st.index(last_time_xs)
+        loriday = b1.index(xs1[-1])
+
+        if len(xs1) < len(b1):
+            fxsday = 0
+            foriday = b1.index(xs1[0])
+            labels = labels[:, (foriday+1):(loriday+2) , :]
+        else:
+            fxsday = xs1.index(b1[0])
+            foriday = 0
+            labels = labels[:, (foriday+1):(loriday+2) , :]
         
-        st = st[ind_s:ind_ls]
-        labels = labels[:, (ind+1):(ind_last+2) , :]
+        xs = xs[fxsday:-1]
+        ori_data = ori_data[(foriday+1):loriday]
+        st = st[fxsday:-1]
 
     return xs, labels, ori_data, st
 
@@ -232,7 +235,7 @@ def TestValidate(xs, labels, ori_date, st, test_size, batch_size):
 
     if confirm == 'Y':
         if len(xs[test_size:]) % batch_size == 0:
-            minus = (len(xs[:test_size]) % batch_size)-1
+            minus = (len(xs[:test_size]) % batch_size)
 
             xs_test = xs[minus:test_size]
             xs_validate = xs[test_size:]
@@ -248,10 +251,10 @@ def TestValidate(xs, labels, ori_date, st, test_size, batch_size):
             return xs_test, labels_test, ori_date_test, st_test, xs_validate, labels_validate, ori_date_validate, st_validate
         
         else:
-            print("中斷執行，請確認驗證集資料筆數可被batch_size整除")
+            sys.exit("中斷執行，請確認驗證集資料筆數可被batch_size整除")
     
     else:
-        print("中斷執行，請確認訓練集大小後重新執行本函數")
+        sys.exit("中斷執行，請確認訓練集大小後重新執行本函數")
 
 # 從YAHOO FINANC抓取資料
 #def stock_load(stock_id, time_start=0, time_end=str(create_today_timestamp()), frequency='d'):

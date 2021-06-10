@@ -12,7 +12,7 @@ class Rnngru:
     '''
     def __init__(self, st, gamma, st_gamma, var_size, batch_size, time_size, output_size, hidden_size=100):
 
-        N, B, T, H, O = var_size, batch_size, time_size, output_size, hidden_size
+        N, B, T, H, O = var_size, batch_size, time_size, hidden_size, output_size
         rn = np.random.randn
         
         #初始化權重
@@ -37,8 +37,10 @@ class Rnngru:
         #把所有權重與梯度整合成清單
         self.params, self.grads = [], []
         for layer in self.layers:
-            self.params += layer.params
-            self.grads += layer.grads
+            # self.params += layer.params
+            # self.grads += layer.grads
+            self.params.append(layer.params)
+            self.grads.append(layer.grads)
 
 
     def predict(self, xs):
