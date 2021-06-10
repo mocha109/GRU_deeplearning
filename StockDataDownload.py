@@ -123,7 +123,7 @@ def stocklabel(st_amount=30, return_data = 1, industry='all', itype='股票', in
         for time in range(t):
             labels[count_id, time, int(data.iloc[time, list(data.columns).index('code')])] = 1
     
-        count_id += 1
+        count_id += 1 
 
     return labels, ori_data
 
@@ -144,36 +144,25 @@ def alter_a(xs, labels, ori_data, st):
     xs1 = list(xs.index.strftime("%Y-%m-%d"))
     st1 = list(st.index.strftime("%Y-%m-%d"))
 
-    # xs要慢label一期，因此當兩者的最新日期相同時，xs要向前移一期
-    if xs1[-1] == b1[-1]:
-        if len(xs1) < len(b1):
-            fxsday = 0
-            foriday = b1.index(xs1[0])
-            labels = labels[:, (foriday+1): , :]
-        else:
-            fxsday = xs1.index(b1[0])
-            foriday = 0
-            labels = labels[:, (foriday+1): , :]
-        
-        xs = xs[fxsday:-1]
-        ori_data = ori_data[foriday:-1]
-        st = st[fxsday:-1]
+    # 用concat尋找共同時間點，最後輸出一致時間長度的xs,labels,st
+    all_df = pd.concat([ori_data,xs,st],axis=1)
+    all_df_remove_na = all_df.dropna(axis=0)
+    all_df_remove_na1=list(all_df_remove_na.index.strftime("%Y-%m-%d"))
 
-    else:
-        loriday = b1.index(xs1[-1])
-
-        if len(xs1) < len(b1):
-            fxsday = 0
-            foriday = b1.index(xs1[0])
-            labels = labels[:, (foriday+1):(loriday+2) , :]
-        else:
-            fxsday = xs1.index(b1[0])
-            foriday = 0
-            labels = labels[:, (foriday+1):(loriday+2) , :]
-        
-        xs = xs[fxsday:-1]
-        ori_data = ori_data[(foriday+1):loriday]
-        st = st[fxsday:-1]
+    first_time_all = all_df_remove_na1[0]
+    last_time_all = all_df_remove_na1[-1]
+    
+    ind = b1.index(first_time_all)
+    ind_last = b1.index(last_time_all)
+    labels = labels[:, (ind+1):(ind_last+2) , :]
+    
+    ind = st1.index(first_time_all)
+    ind_last = st1.index(last_time_all)
+    st = st[ind:ind_last]
+    
+    ind = xs1.index(first_time_all)
+    ind_last = xs1.index(last_time_all)
+    xs = xs[ind:ind_last]
 
     return xs, labels, ori_data, st
 
