@@ -38,11 +38,11 @@ class RnnGRUTrainer:
         model = self.model
         model.load_params()
 
-    def single_fit(self, xs, single_ts, max_epoch=10, batch_size=20, max_grad=None, saveP = False):
+    def single_fit(self, batch_x, single_ts, max_epoch=10, max_grad=None, saveP = False):
         '''
         本函式僅適用單一股票模型訓練，請輸入時確認資料型態
         '''
-        data_size = len(xs)
+        var_size, batch_size, time_size = batch_x.shape
         self.ppl_list = []
         model, optimizer = self.model, self.optimizer
 
@@ -50,7 +50,7 @@ class RnnGRUTrainer:
         for epoch in range(max_epoch):
             
             # 將資料形式整理為批次
-            batch_x = self.get_batch(xs, batch_size)
+            # batch_x = self.get_batch(xs, batch_size)
 
             # 計算梯度，更新參數
             avg_loss = model.forward(batch_x, single_ts)
@@ -71,20 +71,20 @@ class RnnGRUTrainer:
                 model.save_params()
 
     
-    def multi_fit(self, xs, multi_ts, max_epoch=10, batch_size=20, max_grad=None, wt_method='industry', saveP = False):
+    def multi_fit(self, batch_x, multi_ts, max_epoch=10, max_grad=None, wt_method='industry', saveP = False):
         '''
         本方法有2種調整權重方式，分別為industry、all_market :
         1.industry : 適用於ts資料及全來自同一產業，此方法透過所有股票共用同一權重來找出此產業中的重要影響因素，並排除個別股票的獨特特徵
         2.all_market : 適用於從所有股票中隨機選取的ts資料集，此方法為輪流以各股票訓練模型，最後將各股票的權重平均後導回模型中
         '''
-        data_size, var_size = xs.shape
+        var_size, batch_size, time_size = batch_x.shape
         self.ppl_list = []
         model, optimizer = self.model, self.optimizer
         all_params = None
         all_grads = None
 
         # 將資料形式整理為批次
-        batch_x = self.get_batch(xs, batch_size)
+        # batch_x = self.get_batch(xs, batch_size)
 
         start_time = time.time()
         if wt_method == 'industry':

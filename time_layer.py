@@ -1,4 +1,5 @@
 # from npTOcp import *  # import numpy as np (or import cupy as np)
+from pickle import NONE
 import numpy as np
 from layers import *
 from function import softmax, sigmoid_gru, sigmoid_st
@@ -30,7 +31,7 @@ class GRU:
 
         z = sigmoid_gru(np.dot(x, Wxz) + np.dot(h_prev, Whz) + bz, self.gamma)
         r = sigmoid_gru(np.dot(x, Wxr) + np.dot(h_prev, Whr) + br, self.gamma)
-        h_hat = np.tanh(np.dot(x, Wxh) + np.dot(r*h_prev, Whh) + bh, self.gamma)
+        h_hat = np.tanh(np.dot(x, Wxh) + np.dot(r*h_prev, Whh) + bh)
         h_next = (1-z) * h_prev + z * h_hat
 
         self.cache = (x, h_prev, z, r, h_hat)
@@ -64,20 +65,20 @@ class GRU:
         # update gate(z)
         dz = dh_next * h_hat - dh_next * h_prev  # step z.2.1 : dh_next * (dh_next/dz)
         dt = dz * z * (1-z)                      # step z.2.2 : dz * (dz/dsigmoid) ,sigmoid微分結果在函式註解有
-        dbz = np.sum(dt, axis=0)*gamma           # step z.3.1 : dt * (dsigmoid/dbz)
-        dWhz = np.dot(h_prev.T, dt)*gamma        # step z.3.2 : dt * (dsigmoid/dWhz)
-        dh_prev += np.dot(dt, Whz.T)*gamma       # step z.3.3 : dt * (dsigmoid/dh_prev)
-        dWxz = np.dot(x.T, dt)*gamma             # step z.3.4 : dt * (dsigmoid/dWxz)
-        dx += np.dot(dt, Wxz.T)*gamma            # step z.3.5 : dt * (dsigmoid/dx)
+        dbz = np.sum((gamma*dt.T).T, axis=0)         # step z.3.1 : dt * (dsigmoid/dbz)
+        dWhz = np.dot(gamma*h_prev.T, dt)      # step z.3.2 : dt * (dsigmoid/dWhz)
+        dh_prev += np.dot((gamma*dt.T).T, Whz)       # step z.3.3 : dt * (dsigmoid/dh_prev)
+        dWxz = np.dot(gamma*x.T, dt)           # step z.3.4 : dt * (dsigmoid/dWxz)
+        dx += np.dot((gamma*dt.T).T, Wxz.T)            # step z.3.5 : dt * (dsigmoid/dx)
 
         # reset gate(r)
         dr = dhr * h_prev                        # step r.2.1 : dhr * (dhr/dr) ,hr表示r * h_prev
         dt = dr * r * (1-r)                      # step r.2.2 : dr * (dr/dsigmoid) ,sigmoid微分結果在函式註解有
-        dbr = np.sum(dt, axis=0)*gamma           # stpe r.3.1 : dt * (dsigmoid/dbr)
-        dWhr = np.dot(h_prev.T, dt)*gamma        # step r.3.2 : dt * (dsigmoid/dWhr)
-        dh_prev += np.dot(dt, Whr.T)*gamma       # step r.3.3 : dt * (dsigmoid/dh_prev)
-        dWxr = np.dot(x.T, dt)*gamma             # step r.3.4 : dt * (dsigmoid/dWxr)
-        dx += np.dot(dt, Wxr.T)*gamma            # step r.3.5 : dt * (dsigmoid/dx)
+        dbr = np.sum((gamma*dt.T).T, axis=0)         # stpe r.3.1 : dt * (dsigmoid/dbr)
+        dWhr = np.dot(gamma*h_prev.T, dt)      # step r.3.2 : dt * (dsigmoid/dWhr)
+        dh_prev += np.dot((gamma*dt.T).T, Whr)       # step r.3.3 : dt * (dsigmoid/dh_prev)
+        dWxr = np.dot(gamma*x.T, dt)           # step r.3.4 : dt * (dsigmoid/dWxr)
+        dx += np.dot((gamma*dt.T).T, Wxr.T)            # step r.3.5 : dt * (dsigmoid/dx)
         
         #將權重與截距儲存起來以便於修正
         self.dWx = np.hstack((dWxz, dWxr, dWxh))
@@ -131,9 +132,10 @@ class TimeGRU:
         反向執行T~0期GRU的backward()並將grads取出
         '''
         Wx, Wh, b = self.params
-        N, B, T = dhs.shape
+        N, B, H = dhs.shape
         # N, B, H = dhs.shape
-        # T = Wx.shape[0]
+        T = Wx.shape[0]
+        gamma = self.gamma
 
         dxs = np.empty((N, B, T), dtype='f')
 
@@ -143,7 +145,7 @@ class TimeGRU:
         # 由於是反向傳播，因此要將順序顛倒(由後往前_，從第t期GRU往前回朔至第1期GRU
         for b in reversed(range(B)):
             layer = self.layers[b]
-            dx, dh = layer.backward(dhs[:, b, :] + dh)
+            dx, dh = layer.backward(dhs[:, b, :] + dh, gamma)
             dxs[:, b, :] = dx
             
             # 將單一變數的每個gru所產生的Wx、Wh、b分別累計儲存進TimeGRU中forward函式的grads，儲存方式與gru相同
@@ -171,38 +173,43 @@ class TimeConnection:
     1.將TimeGRU傳來的hs(N*B*T)轉為BT*N，即每一列為不同變數的同一期
     2.這樣處理是為了在接下來的TimeAffine層中觀察不同變數對於股價報酬率的影響
     '''
-    def __init__(self, shape_x):
-        self.N, self.B, self.T = shape_x
-        self.x = np.zeros((self.N, self.B * self.T), dtype='f')
+    def __init__(self, shape_hs):
+        self.N, self.B, self.H = shape_hs
+        self.x = None # np.zeros((self.N, self.B * self.H), dtype='f')
         self.dx = None
         self.params = None
         self.grads = None
     
     def forward(self, x):
         '''
-        1.先將hs變形為N*BT
-        2.利用np.vstack與FOR迴圈將hs重新堆疊變為BT*N
+        1.先將hs變形為N*BH
+        2.利用np.vstack與FOR迴圈將hs重新堆疊變為BH*N
         '''
-        N, B, T = self.N, self.B, self.T
-        x.reshape(N, B * T)
-        
-        self.x = x[:,0]
+        N, B, H = self.N, self.B, self.H
+        # x.reshape(N, B * H)
 
-        for t in range(1, B*T):
-            self.x = np.vstack((self.x, x[:,t]))  # BT*N
+        self.x = x.reshape(N, B * H)
+        self.x = self.x.T  # BH*N
+        
+        # self.x = x[:,0]
+
+        # for t in range(1, B*H):
+        #     self.x = np.vstack((self.x, x[:,t]))  # BH*N
         
         return self.x
     
     def backward(self, dx):
         '''
-        將dx重新變形為N*B*T
+        將dx重新變形為N*B*H
         '''
-        N, B, T = self.N, self.B, self.T
-        self.dx = dx[:,0]
-        for n in range(1, N):
-            self.dx = np.vstack(self.x, dx[:,n])  # N*BT
+        N, B, H = self.N, self.B, self.H
+        self.dx = dx.T
+        self.dx = self.dx.reshape(N, B, H)
 
-        return self.dx.reshpae(N, B, T)
+        # for n in range(1, N):
+        #     self.dx = np.vstack(self.x, dx[:,n])  # N*BH
+        #print(self.dx.shape)
+        return self.dx
 
 
 
@@ -210,50 +217,53 @@ class TimeAffine:
     '''
     本MDOEL中的TimeAffine並非股價本身互乘，而是類似STVAR模型
     '''
-    def __init__(self, W, b, c, st, gamma):
+    def __init__(self, W, b, c, st, st_gamma):
         self.params = [W, b, c]
-        self.st, self.gamma = st, gamma
+        self.st, self.st_gamma = st, st_gamma
         self.grads = [np.zeros_like(W), np.zeros_like(b), np.zeros_like(c)]
         self.x = None
 
     def forward(self, x):
-        BT, N = x.shape
+        BH, N = x.shape
         W, b, c = self.params
-        O = b.shape[1] / 2
+        O = int(b.shape[0] / 2)
         Wn, Wst = W[:, :O], W[:, O:2*O]
-        bn, bst = b[:, :O], b[:, O:2*O]
-        self.transition = sigmoid_st(self.st, self.gamma, c)
+        bn, bst = b[ :O], b[O:2*O]
+        self.transition = sigmoid_st(self.st, self.st_gamma, c)
 
-
-        out = np.dot(x, Wn) + bn + self.transition.T * (np.dot(x, Wst) + bst)  #BT*O
+        out1 = np.dot(x, Wn) + bn
+        out2 = self.transition * (np.dot(x, Wst) + bst)  #BH*O
+        out = out1 + out2
+        out1 = None
+        out2 = None
         self.x = x
         return out
 
     def backward(self, dout):
         x = self.x
         tran = self.transition
-        BT, O = x.shape
-        W, b = self.params
+        BH, O = dout.shape
+        W, b, c = self.params
 
         db = np.zeros_like(b)
         dW = np.zeros_like(W)
 
-        db[:, :O] = np.sum(dout, axis=0)  # 1*O
-        db[:, O:2*O] = np.sum(tran.T * dout, axis=0)  # 1*O
+        db[ :O] = np.sum(dout, axis=0)  # 1*O
+        db[O:2*O] = np.sum(tran * dout, axis=0)  # 1*O
         dW[:, :O] = np.dot(x.T, dout)  # N*O
-        dW[:, O:2*O] = np.dot(dout.T, tran.T*x)  # N*O
+        dW[:, O:2*O] = np.dot((tran*x).T,dout)  # N*O
         dc_temp = (1 / tran) -1
-        dc = np.dum(np.dot(-(tran**2), dc_temp.T) * self.gamma, axis=0)  # 1*BT
+        dc = np.sum(np.dot(-(tran**2), dc_temp.T) * self.st_gamma, axis=0)  # 1*BH
         dc_temp = None
 
         dx_temp = np.dot(dout, W[:, :O].T)
-        dx = (np.dot(tran.T * dout, W[:, O:2*O].T) + dx_temp)/2  # BT*N
+        dx = (np.dot(tran * dout, W[:, O:2*O].T) + dx_temp)/2  # BH*N
         dx_temp = None
 
         self.grads[0][...] = dW
         self.grads[1][...] = db
         self.grads[2][...] = dc
-
+        #print(dx.shape)
         return dx
 
 
@@ -264,22 +274,22 @@ class TimeSoftmaxWithLoss:
         self.batch_size = batch_size
 
     def forward(self, xs, ts):
-        BT, O = xs.shape
+        BH, O = xs.shape
         B = self.batch_size
         ys = softmax(xs)
         loss = -1 * np.log(ys) * ts
         toal_loss = np.sum(loss)
-        avg_loss = toal_loss / BT
+        avg_loss = toal_loss / BH
 
-        self.cache = (ts, ys, BT)
+        self.cache = (ts, ys, BH)
         return avg_loss
 
     def backward(self, dout=1):
-        ts, ys, BT = self.cache
+        ts, ys, BH = self.cache
 
         # loss對xs微分
         dx = ys  # 
-        dx[np.arange(BT), ts] -= 1  # 選出dx的所有列中的正確值，並-1(因ts是一[1,0,0...]的矩陣，故最終只會有一個值)
+        dx[np.arange(BH), ts.T] -= 1  # 選出dx的所有列中的正確值，並-1(因ts是一[1,0,0...]的矩陣，故最終只會有一個值)
         dx = dx * dout  # 
-
+        # print(dx.shape)
         return dx

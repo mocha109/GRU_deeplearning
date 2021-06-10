@@ -14,11 +14,12 @@ class Rnngru:
 
         N, B, T, H, O = var_size, batch_size, time_size, hidden_size, output_size
         rn = np.random.randn
+        shape_x=(N, B, H)
         
         #初始化權重
-        gru_Wx = (rn(T, 4 * H) / np.sqrt(T)).astype('f')
-        gru_Wh = (rn(H, 4 * H) / np.sqrt(H)).astype('f')
-        gru_b = np.zeros(4 * H).astype('f')
+        gru_Wx = (rn(T, 3 * H) / np.sqrt(T)).astype('f')
+        gru_Wh = (rn(H, 3 * H) / np.sqrt(H)).astype('f')
+        gru_b = np.zeros(3 * H).astype('f')
         affine_W = (rn(N, 2*O) / np.sqrt(N)).astype('f')
         affine_b = np.zeros(2*O).astype('f')
         st_mean = np.mean(st).astype('f')
@@ -28,7 +29,7 @@ class Rnngru:
         #產生各層
         self.layers = [
             TimeGRU(gru_Wx, gru_Wh, gru_b, gamma, stateful=True),
-            TimeConnection(shape_x=(N, B, T)),
+            TimeConnection(shape_x),
             TimeAffine(affine_W, affine_b, affine_c, st, st_gamma)
         ]
         self.loss_layer = TimeSoftmaxWithLoss(batch_size = B)
@@ -51,8 +52,8 @@ class Rnngru:
 
     def forward(self, xs, ts):
         score = self.predict(xs)
-        total_loss, avg_loss = self.loss_layer.forward(score, ts)
-        return total_loss, avg_loss
+        avg_loss = self.loss_layer.forward(score, ts)
+        return avg_loss
 
 
     def backward(self, dout=1):

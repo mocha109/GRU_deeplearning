@@ -7,11 +7,13 @@ def sigmoid(x):
 
 def sigmoid_gru(x,gamma):
     # 此GAMMA為一1*N矩陣
-    return 1 / (1 + np.exp(-gamma.T * x))
+    gamma = 1 / gamma
+    return 1 / (1 + np.exp(-gamma * x.T).T)
 
-def sigmoid_st(st,gamma,c):
+def sigmoid_st(st,st_gamma,c):
     # 此一GAMMA為純值
-    return 1 / (1 + np.exp(-gamma*(st-c))) 
+    st_gamma = 1 / st_gamma
+    return 1 / (1 + np.exp(-st_gamma*(st.T-c).T)) 
 
 
 def relu(x):
