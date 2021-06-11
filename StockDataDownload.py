@@ -155,6 +155,10 @@ def alter_a(xs, labels, ori_data, st):
     ind = b1.index(first_time_all)
     ind_last = b1.index(last_time_all)
     labels = labels[:, (ind+1):(ind_last+2) , :]
+
+    ind = b1.index(first_time_all)
+    ind_last = b1.index(last_time_all)
+    ori_data = ori_data[(ind+1):(ind_last+2)]
     
     ind = st1.index(first_time_all)
     ind_last = st1.index(last_time_all)
@@ -163,6 +167,8 @@ def alter_a(xs, labels, ori_data, st):
     ind = xs1.index(first_time_all)
     ind_last = xs1.index(last_time_all)
     xs = xs[ind:ind_last]
+
+    xs = xs.apply(lambda x: (x-x.mean())/ x.std(), axis=0)
 
     return xs, labels, ori_data, st
 
