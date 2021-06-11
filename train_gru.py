@@ -26,7 +26,7 @@ st = PdNp(st)
 
 # %%
 
-xs, labels, ori_data, st, xs_v, labels_v, ori_data_v, st_v = TestValidate(xs, labels, ori_data, st, test_size = 142, batch_size = 20)
+xs, labels, ori_data, st, xs_v, labels_v, ori_data_v, st_v = TestValidate(xs, labels, ori_data, st, test_size = 146, batch_size = 10)
 
 # %%
 #設定超參數
@@ -53,6 +53,13 @@ batch_x = trainer.get_batch(xs, batch_size)
 trainer.multi_fit(batch_x, multi_ts=labels, max_epoch=10, max_grad=None, wt_method='industry')
 trainer.plot(max_epoch, ylim=(0, 500))
 
+# %%
+# ---------------------------------
+
+#model.grads[0][2].shape
+model.params[0][2].shape
+
+# ---------------------------------
 # %%
 # 用測試資料評估
 model.reset_state()

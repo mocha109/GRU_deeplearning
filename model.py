@@ -38,10 +38,11 @@ class Rnngru:
         #把所有權重與梯度整合成清單
         self.params, self.grads = [], []
         for layer in self.layers:
-            # self.params += layer.params
-            # self.grads += layer.grads
-            self.params.append(layer.params)
-            self.grads.append(layer.grads)
+            if self.layers.index(layer) != 1:
+                # self.params += layer.params
+                # self.grads += layer.grads
+                self.params.append(layer.params)
+                self.grads.append(layer.grads)
 
 
     def predict(self, xs):

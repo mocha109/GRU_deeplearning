@@ -115,17 +115,20 @@ class Adam:
         if self.m is None:
             self.m, self.v = [], []
             for param in params:
-                param = np.array(param, dtype='f')
-                self.m.append(np.zeros_like(param))
-                self.v.append(np.zeros_like(param))
+                for p in param:
+                    self.m.append(np.zeros_like(p))
+                    self.v.append(np.zeros_like(p))
         
         self.iter += 1
         lr_t = self.lr * np.sqrt(1.0 - self.beta2**self.iter) / (1.0 - self.beta1**self.iter)
-
+        
         for i in range(len(params)):
-            params[i] = np.array(params[i], dtype='f')
-            grads[i] = np.array(grads[i], dtype='f')
-            self.m[i] += (1 - self.beta1) * (grads[i] - self.m[i])
-            self.v[i] += (1 - self.beta2) * (grads[i]**2 - self.v[i])
-            
-            params[i] -= lr_t * self.m[i] / (np.sqrt(self.v[i]) + 1e-7)
+            count = len(params[i])
+
+            for j in range(len(params[i])):
+                self.m[j+i*count] += (1 - self.beta1) * (grads[i][j] - self.m[j+i*count])
+                self.v[j+i*count] += (1 - self.beta2) * (grads[i][j]**2 - self.v[j+i*count])
+                
+                params[i][j] -= lr_t * self.m[j+i*count] / (np.sqrt(self.v[j+i*count]) + 1e-7)
+        
+
