@@ -26,7 +26,7 @@ st = PdNp(st)
 
 # %%
 
-xs, labels, ori_data, st, xs_v, labels_v, ori_data_v, st_v = TestValidate(xs, labels, ori_data, st, test_size = 146, batch_size = 10)
+xs, labels, ori_data, st, xs_v, labels_v, ori_data_v, st_v = TestValidate(xs, labels, ori_data, st, test_size = 142, batch_size = 10)
 
 # %%
 #設定超參數
@@ -55,9 +55,8 @@ trainer.plot(max_epoch, ylim=(0, 500))
 
 # %%
 # ---------------------------------
-
-#model.grads[0][2].shape
-model.params[0][2].shape
+TimeSoftmaxWithLoss.
+#trainer.model.TimeSoftmaxWithLoss.test
 
 # ---------------------------------
 # %%
@@ -71,5 +70,6 @@ model.save_params()
 
 
 # %%
-model.params[2]
+#model.layers[0].layers[0].cache
+model.layers[0].h
 # %%

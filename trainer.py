@@ -101,16 +101,27 @@ class RnnGRUTrainer:
                         clip_grads(grads, max_grad)
                     optimizer.update(params, grads)  # 梯度更新方式
 
-                    # 評估困惑度 
-                    ppl = np.exp(avg_loss)
-                    elapsed_time = time.time() - start_time
-                    epoch_time = elapsed_time / (epoch+1)*(varcount+1)
-                    RestTime = epoch_time*(max_epoch*var_size) - elapsed_time
-                    RestTime = round(RestTime/3600, 2)
-                    print('| VarCount %d | Epoch %d |  Time %d[s] | RestTime %f[s] hours | Perplexity %.2f'
-                            % (varcount + 1, epoch + 1, elapsed_time, RestTime, ppl))
-                    self.ppl_list.append(float(ppl))
-        
+                    # 計算困惑度
+                    # ppl = np.exp(avg_loss) / varcount
+                    # elapsed_time = time.time() - start_time
+                    # epoch_time = elapsed_time / (epoch+1)*(varcount+1)
+                    # RestTime = epoch_time*(max_epoch*var_size) - elapsed_time
+                    # RestTime = round(RestTime/3600, 2)
+                    # print('| VarCount %d | Epoch %d |  Time %d[s] | RestTime %f[s] hours | Perplexity %.2f'
+                    #         % (varcount + 1, epoch + 1, elapsed_time, RestTime, ppl))
+                    # self.ppl_list.append(float(ppl))
+                
+                avg_loss = avg_loss / var_size
+                ppl = np.exp(avg_loss)
+                elapsed_time = time.time() - start_time
+                epoch_time = elapsed_time / (epoch+1)*(varcount+1)
+                RestTime = epoch_time*(max_epoch*var_size) - elapsed_time
+                RestTime = round(RestTime/3600, 2)
+                print('| Epoch %d |  Time %d[s] | RestTime %f[s] hours | Perplexity %.2f'
+                        % (epoch + 1, elapsed_time, RestTime, ppl))
+                self.ppl_list.append(float(ppl))
+
+
             if saveP:
                     model.save_params()
         
@@ -127,7 +138,8 @@ class RnnGRUTrainer:
                         clip_grads(grads, max_grad)
                     optimizer.update(params, grads)  # 梯度更新方式
 
-                    # 評估困惑度 
+                    # 評估困惑度
+                    
                     ppl = np.exp(avg_loss)
                     elapsed_time = time.time() - start_time
                     epoch_time = elapsed_time / (epoch+1)*(varcount+1)

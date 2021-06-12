@@ -186,7 +186,7 @@ class TimeConnection:
         2.利用np.vstack與FOR迴圈將hs重新堆疊變為BH*N
         '''
         N, B, H = self.N, self.B, self.H
-        # x.reshape(N, B * H)
+        # print(x)
 
         self.x = x.reshape(N, B * H)
         self.x = self.x.T  # BH*N
@@ -237,6 +237,9 @@ class TimeAffine:
         out1 = None
         out2 = None
         self.x = x
+
+        # print(x)
+
         return out
 
     def backward(self, dout):
@@ -272,14 +275,17 @@ class TimeSoftmaxWithLoss:
         self.params, self.grads = [], []
         self.cache = None
         self.batch_size = batch_size
+        self.test = []
 
     def forward(self, xs, ts):
         BH, O = xs.shape
         B = self.batch_size
         ys = softmax(xs)
         loss = -1 * np.log(ys) * ts
-        toal_loss = np.sum(loss)
-        avg_loss = toal_loss / BH
+        total_loss = np.sum(loss)
+        avg_loss = total_loss / BH
+        
+        # print(xs, ys)
 
         self.cache = (ts, ys, BH)
         return avg_loss
