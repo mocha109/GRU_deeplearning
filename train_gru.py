@@ -8,6 +8,7 @@ from model import *
 from StockDataDownload import *
 #from npTOcp import *
 import numpy as np
+import pandas as pd
 
 
 # %%
@@ -18,7 +19,7 @@ ori_data
 # %%
 
 xs, st = xs_data(file='C:\\Users\\z1244\\Desktop\\data')
-xs = xs_rolling(xs,roll=1,sh=1,axis=0)
+xs = xs_rolling(xs,roll=5,sh=1,axis=0)
 xs, labels, ori_data, st = alter_a(xs,labels,ori_data, st)
 
 xs = PdNp(xs)
@@ -26,7 +27,7 @@ st = PdNp(st)
 
 # %%
 
-xs, labels, ori_data, st, xs_v, labels_v, ori_data_v, st_v = TestValidate(xs, labels, ori_data, st, test_size = 142, batch_size = 10)
+xs, labels, ori_data, st, xs_v, labels_v, ori_data_v, st_v = TestValidate(xs, labels, ori_data, st, test_size = 146, batch_size = 10)
 
 # %%
 #設定超參數
@@ -35,8 +36,8 @@ data_size, var_size = xs.shape
 output_size = 7
 time_size = data_size // batch_size
 hidden_size = time_size  # 本模型必要設置，不這樣設在AFFINE層會出錯
-lr = 0.05
-max_epoch = 10
+lr = 0.1
+max_epoch = 30
 # max_grad = 
 gamma = np.std(xs, ddof=1, axis=0, dtype='f')
 st_gamma = np.std(st, ddof=1,dtype='f')
@@ -50,14 +51,14 @@ trainer = RnnGRUTrainer(model, optimizer)
 # 套用梯度裁減並學習
 batch_x = trainer.get_batch(xs, batch_size)
 # trainer.single_fit(batch_x, single_ts, max_epoch=10, batch_size=20, max_grad=None)
-trainer.multi_fit(batch_x, multi_ts=labels, max_epoch=10, max_grad=None, wt_method='industry')
+trainer.multi_fit(batch_x, max_epoch=max_epoch, multi_ts=labels, max_grad=None, wt_method='all_market') #industry
 trainer.plot(max_epoch, ylim=(0, 500))
 
 # %%
 # ---------------------------------
-TimeSoftmaxWithLoss.
+# TimeSoftmaxWithLoss.
 #trainer.model.TimeSoftmaxWithLoss.test
-
+#model.params[0][2]
 # ---------------------------------
 # %%
 # 用測試資料評估
@@ -70,6 +71,8 @@ model.save_params()
 
 
 # %%
-#model.layers[0].layers[0].cache
-model.layers[0].h
+#model.layers[0].layers[1].cache
+#model.layers[0].h
+#model.layers[2].cache
+#model.loss_layer.cache[1].shape
 # %%

@@ -97,7 +97,7 @@ class TimeGRU:
     1.每一個timeGRU為一個變數的所有GRU(T=0~T=T)的組合
     2.本model在這部分將所有輸入變數統一處理
     '''
-    def __init__(self, Wx, Wh, b, gamma, stateful=True):
+    def __init__(self, Wx, Wh, b, gamma, stateful=False):
         self.params = [Wx, Wh, b]
         self.grads = [np.zeros_like(Wx), np.zeros_like(Wh), np.zeros_like(b)]
         self.layers = None
@@ -231,14 +231,12 @@ class TimeAffine:
         bn, bst = b[ :O], b[O:2*O]
         self.transition = sigmoid_st(self.st, self.st_gamma, c)
 
-        out1 = np.dot(x, Wn) + bn
-        out2 = self.transition * (np.dot(x, Wst) + bst)  #BH*O
-        out = out1 + out2
-        out1 = None
-        out2 = None
+        #out1 = np.dot(x, Wn) + bn
+        out = (np.dot(x, Wn) + bn) + self.transition * (np.dot(x, Wst) + bst)  #BH*O
+        #out = out1 + out2
+        #out1 = None
+        #out2 = None
         self.x = x
-
-        # print(x)
 
         return out
 
@@ -280,10 +278,14 @@ class TimeSoftmaxWithLoss:
     def forward(self, xs, ts):
         BH, O = xs.shape
         B = self.batch_size
+        
         ys = softmax(xs)
-        loss = -1 * np.log(ys) * ts
-        total_loss = np.sum(loss)
-        avg_loss = total_loss / BH
+        # print(ys)
+        ls = np.log(ys[ts == 1])
+        total_loss = -np.sum(ls)
+        # loss = -1 * np.log(ts) * ts
+        # total_loss = np.sum(loss)
+        avg_loss = total_loss # / BH
         
         # print(xs, ys)
 
@@ -295,7 +297,7 @@ class TimeSoftmaxWithLoss:
 
         # loss對xs微分
         dx = ys  # 
-        dx[np.arange(BH), ts.T] -= 1  # 選出dx的所有列中的正確值，並-1(因ts是一[1,0,0...]的矩陣，故最終只會有一個值)
+        dx[ts == 1] = dx[ts == 1] - 1  # 選出dx的所有列中的正確值，並-1(因ts是一[1,0,0...]的矩陣，故最終只會有一個值)
         dx = dx * dout  # 
         # print(dx.shape)
         return dx

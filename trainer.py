@@ -61,7 +61,8 @@ class RnnGRUTrainer:
             optimizer.update(params, grads)  # 梯度更新方式
 
             # 評估困惑度 
-            ppl = np.exp(avg_loss)
+            # ppl = np.exp(avg_loss)
+            ppl = avg_loss
             epoch_time = time.time() - start_time
             print('| epoch %d |  time %d[s] | perplexity %.2f'
                     % (epoch + 1, epoch_time, ppl))
@@ -71,7 +72,7 @@ class RnnGRUTrainer:
                 model.save_params()
 
     
-    def multi_fit(self, batch_x, multi_ts, max_epoch=10, max_grad=None, wt_method='industry', saveP = False):
+    def multi_fit(self, batch_x, multi_ts, max_epoch, max_grad=None, wt_method='industry', saveP = False):
         '''
         本方法有2種調整權重方式，分別為industry、all_market :
         1.industry : 適用於ts資料及全來自同一產業，此方法透過所有股票共用同一權重來找出此產業中的重要影響因素，並排除個別股票的獨特特徵
@@ -112,7 +113,8 @@ class RnnGRUTrainer:
                     # self.ppl_list.append(float(ppl))
                 
                 avg_loss = avg_loss / var_size
-                ppl = np.exp(avg_loss)
+                # ppl = np.exp(avg_loss)
+                ppl = avg_loss
                 elapsed_time = time.time() - start_time
                 epoch_time = elapsed_time / (epoch+1)*(varcount+1)
                 RestTime = epoch_time*(max_epoch*var_size) - elapsed_time
@@ -140,7 +142,8 @@ class RnnGRUTrainer:
 
                     # 評估困惑度
                     
-                    ppl = np.exp(avg_loss)
+                    # ppl = np.exp(avg_loss)
+                    ppl = avg_loss
                     elapsed_time = time.time() - start_time
                     epoch_time = elapsed_time / (epoch+1)*(varcount+1)
                     RestTime = epoch_time*(max_epoch*var_size) - elapsed_time
@@ -149,14 +152,14 @@ class RnnGRUTrainer:
                             % (varcount + 1, epoch + 1, elapsed_time, RestTime, ppl))
                     self.ppl_list.append(float(ppl))
                 
-                # 將訓練完的權重平均
-                all_params += params
-                all_grads += grads
+            #     # 將訓練完的權重平均
+            #     all_params += params
+            #     all_grads += grads
             
-            # 將平均權重放回模型內部
-            model.params, model.grads = all_params/var_size, all_grads/var_size
-            all_params = None
-            all_grads = None
+            # # 將平均權重放回模型內部
+            # model.params, model.grads = all_params/var_size, all_grads/var_size
+            # all_params = None
+            # all_grads = None
             
             if saveP:
                 model.save_params()
