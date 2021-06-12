@@ -184,23 +184,30 @@ class RnnGRUTrainer:
         plt.show()
 
 
-    def accuracy(self, batch_size, xs, ts, columns):
+    def accuracy(self, xs, ts, ori_data, batch_size):
         '''
         滿分為200%
         '''
         model = self.model
         N, BT, O = ts.shape
         accuracy = []
+        accuracy_vr = []
         tsmax = np.arange(BT)
         score = 0
+        columns = ori_data.columns
 
         batch_x = self.get_batch(xs, batch_size)
         hs = model.predict(batch_x)
+        hs = softmax(hs)
         hs = np.argmax(hs, axis=1)
+        #count = 0
 
-        for n in range(len(ts)):
+        for n in range(N):
             tsmax = np.argmax(ts[n], axis=1)
+            # count = 0
+
             for t in range(BT):
+                # count = count + 1
                 if hs[t] == tsmax[t]:
                     score += 2
                 elif hs[t] > 3 and tsmax[t] > 3:
@@ -219,14 +226,38 @@ class RnnGRUTrainer:
                     score -= 0.5
                 elif hs[t] < 3 and tsmax[t] < 3:
                     score += 1
-            accuracy.append(round(score/BT,2))
+                
+                accuracy_vr.append(round(score,2))
+            accuracy.append(accuracy_vr)
+            accuracy_vr = []
+            score = 0
 
-        plt.plot(columns, accuracy, label='Accuracy for each stock')
+       
+        acc = np.array(accuracy)
+        acc = acc.T
+        row = acc.shape[1] // 3
+        if acc.shape[1]%3 !=0 & row*3<acc.shape[1]:
+            rows = row
+        else:
+            rows = row+1
+        
+        plt.figure(figsize=(12,10))
         plt.xlabel('StockID')
         plt.ylabel('Accuracy')
-        plt.show()
+        plt.ylim((-50,np.max(acc)))
+
+        for pn in range(acc.shape[1]):
+            plt.subplot(rows,3,pn+1)
+            plt.plot(range(BT), acc[:,pn])
+            plt.title(columns[pn])
+
+
+        # plt.plot(columns, accuracy, label='Accuracy for each stock')
+        # plt.xlabel('StockID')
+        # plt.ylabel('Accuracy')
+        # plt.show()
         
-        return accuracy
+        # return accuracy
 
 
     def summary():

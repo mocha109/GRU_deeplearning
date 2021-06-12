@@ -27,7 +27,7 @@ st = PdNp(st)
 
 # %%
 
-xs, labels, ori_data, st, xs_v, labels_v, ori_data_v, st_v = TestValidate(xs, labels, ori_data, st, test_size = 146, batch_size = 10)
+xs, labels, ori_data, st, xs_v, labels_v, ori_data_v, st_v = TestValidate(xs, labels, ori_data, st, test_size = 228, batch_size = 10)
 
 # %%
 #設定超參數
@@ -37,7 +37,7 @@ output_size = 7
 time_size = data_size // batch_size
 hidden_size = time_size  # 本模型必要設置，不這樣設在AFFINE層會出錯
 lr = 0.1
-max_epoch = 30
+max_epoch = 80
 # max_grad = 
 gamma = np.std(xs, ddof=1, axis=0, dtype='f')
 st_gamma = np.std(st, ddof=1,dtype='f')
@@ -55,6 +55,8 @@ trainer.multi_fit(batch_x, max_epoch=max_epoch, multi_ts=labels, max_grad=None, 
 trainer.plot(max_epoch, ylim=(0, 500))
 
 # %%
+trainer.accuracy(xs, labels, ori_data, batch_size=batch_size)
+# %%
 # ---------------------------------
 # TimeSoftmaxWithLoss.
 #trainer.model.TimeSoftmaxWithLoss.test
@@ -71,7 +73,7 @@ model.save_params()
 
 
 # %%
-#model.layers[0].layers[1].cache
+#model.params[1][2]
 #model.layers[0].h
 #model.layers[2].cache
 #model.loss_layer.cache[1].shape
