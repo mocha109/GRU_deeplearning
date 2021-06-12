@@ -173,6 +173,7 @@ def alter_a(xs, labels, ori_data, st):
     return xs, labels, ori_data, st
 
 
+
 #讀總經資料
 def xs_data(file="C:\\Users\\user\\Desktop\\pyhton2\\datasets"):
     '''
@@ -187,18 +188,18 @@ def xs_data(file="C:\\Users\\user\\Desktop\\pyhton2\\datasets"):
         add = "{}\\{}".format(file,file_name[i])
         address.append(add)
 
-        for j in address:
-            if j != "{}\\st.csv".format(file):
-                xs = pd.read_csv(j,index_col=0, header=0, parse_dates=['Date'])
-                
-                if count == 0: 
-                    first= xs
-                    count = count + 1
-                else:
-                    first = pd.concat([first,xs], axis=1)
+    for j in address:
+        if j != "{}\\st.csv".format(file):
+            xs = pd.read_csv(j,index_col=0, header=0, parse_dates=['Date'],thousands=",")
+            
+            if count == 0: 
+                first= xs
+                count = count + 1
             else:
-                st = pd.read_csv(j,index_col=0, usecols=[0, 1],
-                                 header=0,parse_dates=['Date'])
+                first = pd.concat([first,xs], axis=1)
+        else:
+            st = pd.read_csv(j,index_col=0, usecols=[0, 1],
+                                header=0,parse_dates=['Date'])
 
     first = first.dropna(axis=0)
 
