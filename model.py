@@ -17,15 +17,16 @@ class Rnngru:
         shape_x=(N, B, H)
         
         #初始化權重
-        gru_Wx = (rn(T, 3 * H)  / np.sqrt(T)).astype('f') #  / np.sqrt(T))
-        gru_Wh = (rn(H, 3 * H)  / np.sqrt(H)).astype('f') #  / np.sqrt(H))
+        gru_Wx = (rn(T, 3 * H)  / np.sqrt(T)).astype('f')
+        gru_Wh = (rn(H, 3 * H)  / np.sqrt(H)).astype('f')
         gru_b = np.zeros(3 * H).astype('f')
-        #gru_b = rn(3 * H).astype('f')
-        affine_W = (rn(N, 2*O)  / np.sqrt(N)).astype('f') #  / np.sqrt(N))
+        affine_W = (rn(N, 2*O)  / np.sqrt(N)).astype('f')
         affine_b = np.zeros(2*O).astype('f')
-        #affine_b = rn(2*O).astype('f')
+
         st_mean = np.mean(st).astype('f')
-        affine_c = np.full(B*T, st_mean).astype('f') # + rn(B*T).astype('f')
+        st_std = np.std(st).astype('f')
+        # affine_c = np.full(B*T, st_mean).astype('f')
+        affine_c = np.random.normal(st_mean, st_std, (1,B*T)).astype('f')
         
 
         #產生各層

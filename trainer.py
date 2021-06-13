@@ -1,7 +1,8 @@
 # %%
-# import numpy
+import sys
 import time
 import matplotlib.pyplot as plt
+from pandas.core.indexes.base import Index
 import seaborn as sns
 # from npTOcp import *  # import numpy as np
 import numpy as np
@@ -78,11 +79,9 @@ class RnnGRUTrainer:
         1.industry : 適用於ts資料及全來自同一產業，此方法透過所有股票共用同一權重來找出此產業中的重要影響因素，並排除個別股票的獨特特徵
         2.all_market : 適用於從所有股票中隨機選取的ts資料集，此方法為輪流以各股票訓練模型，最後將各股票的權重平均後導回模型中
         '''
-        var_size, batch_size, time_size = batch_x.shape
+        var_size, BT, out = multi_ts.shape
         self.ppl_list = []
         model, optimizer = self.model, self.optimizer
-        all_params = None
-        all_grads = None
 
         # 將資料形式整理為批次
         # batch_x = self.get_batch(xs, batch_size)
@@ -101,16 +100,6 @@ class RnnGRUTrainer:
                     if max_grad is not None:  # 梯度裁減
                         clip_grads(grads, max_grad)
                     optimizer.update(params, grads)  # 梯度更新方式
-
-                    # 計算困惑度
-                    # ppl = np.exp(avg_loss) / varcount
-                    # elapsed_time = time.time() - start_time
-                    # epoch_time = elapsed_time / (epoch+1)*(varcount+1)
-                    # RestTime = epoch_time*(max_epoch*var_size) - elapsed_time
-                    # RestTime = round(RestTime/3600, 2)
-                    # print('| VarCount %d | Epoch %d |  Time %d[s] | RestTime %f[s] hours | Perplexity %.2f'
-                    #         % (varcount + 1, epoch + 1, elapsed_time, RestTime, ppl))
-                    # self.ppl_list.append(float(ppl))
                 
                 avg_loss = avg_loss / var_size
                 # ppl = np.exp(avg_loss)
@@ -151,15 +140,6 @@ class RnnGRUTrainer:
                     print('| VarCount %d | Epoch %d |  Time %d[s] | RestTime %f[s] hours | Perplexity %.2f'
                             % (varcount + 1, epoch + 1, elapsed_time, RestTime, ppl))
                     self.ppl_list.append(float(ppl))
-                
-            #     # 將訓練完的權重平均
-            #     all_params += params
-            #     all_grads += grads
-            
-            # # 將平均權重放回模型內部
-            # model.params, model.grads = all_params/var_size, all_grads/var_size
-            # all_params = None
-            # all_grads = None
             
             if saveP:
                 model.save_params()
@@ -207,7 +187,7 @@ class RnnGRUTrainer:
             # count = 0
 
             for t in range(BT):
-                # count = count + 1
+                
                 if hs[t] == tsmax[t]:
                     score += 2
                 elif hs[t] > 3 and tsmax[t] > 3:
@@ -218,16 +198,16 @@ class RnnGRUTrainer:
                     score -= 1
                 
                 elif hs[t] == 3 and tsmax[t] != 3:
-                    score -= 0.5
+                    score -= 1
                 
                 elif hs[t] < 3 and tsmax[t] > 3:
                     score -= 1
                 elif hs[t] < 3 and tsmax[t] == 3:
                     score -= 0.5
                 elif hs[t] < 3 and tsmax[t] < 3:
-                    score += 1
+                    score += 0.5
                 
-                accuracy_vr.append(round(score,2))
+                accuracy_vr.append(round(score,2)) # /(t+1)
             accuracy.append(accuracy_vr)
             accuracy_vr = []
             score = 0
@@ -235,36 +215,122 @@ class RnnGRUTrainer:
        
         acc = np.array(accuracy)
         acc = acc.T
-        row = acc.shape[1] // 3
+        row = int(acc.shape[1] // 3)
         if acc.shape[1]%3 !=0 & row*3<acc.shape[1]:
             rows = row
         else:
             rows = row+1
         
-        plt.figure(figsize=(12,10))
-        plt.xlabel('StockID')
-        plt.ylabel('Accuracy')
-        plt.ylim((-50,np.max(acc)))
+        if acc.shape[1] <= 39:
+            plt.figure(figsize=(12,15))
+            for pn in range(acc.shape[1]):
+                plt.subplot(rows,3,pn+1)
+                plt.plot(range(BT), acc[:,pn])
+                plt.ylim([np.min(acc), np.max(acc)]) #-1,2
+                plt.title(columns[pn])
+            plt.tight_layout()
 
-        for pn in range(acc.shape[1]):
-            plt.subplot(rows,3,pn+1)
-            plt.plot(range(BT), acc[:,pn])
-            plt.title(columns[pn])
+            plt.show()
+        elif acc.shape[1] > 39 & acc.shape[1] < 80:
+            stock = 39
+            rows = 39 // 3
+            plt.figure(figsize=(12,15))
+            for pn in range(stock):
+                plt.subplot(rows,3,pn+1)
+                plt.plot(range(BT), acc[:,pn])
+                plt.ylim([np.min(acc), np.max(acc)]) #np.min(acc), np.max(acc)
+                plt.title(columns[pn])
+            plt.tight_layout()
 
+            plt.show()
 
-        # plt.plot(columns, accuracy, label='Accuracy for each stock')
-        # plt.xlabel('StockID')
-        # plt.ylabel('Accuracy')
-        # plt.show()
+            stock = acc.shape[1] - 39
+            rows = stock // 3
+            if stock%3 !=0 & rows*3>stock:
+                rows = rows+1
+            elif rows==0:
+                rows = 1
+
+            plt.figure(figsize=(12,15))
+            for pn in range(stock):
+                plt.subplot(rows,3,pn+1)
+                plt.plot(range(BT), acc[:,pn])
+                plt.ylim([np.min(acc), np.max(acc)]) #np.min(acc), np.max(acc)
+                plt.title(columns[pn])
+            plt.tight_layout()
+
+            plt.show()
+        else:
+            sys.exit('過多股票，請減少至80檔以下')
         
-        # return accuracy
+        return acc
 
 
-    def summary():
+    def summary(self, xs_name, st):
+        # , plotting
         model = self.model
         params = model.params
+        N = int(params[1][1].shape[0] / 2)
 
-        affine_nw = params[2,]
+        # 參數數量計算
+        number = 0
+        for layer in params:
+            for w in layer:
+                p1 = w.size
+                number = number + p1
+        
+        # affine層整理
+
+        affine_c = params[1][2]
+
+        affinew = np.hstack([np.mean(params[1][0][:,:N], axis=1), np.mean(params[1][0][:,N:], axis=1)])
+        affinew = affinew.reshape((2,6))
+        affineb = np.vstack([np.mean(params[1][1][:N]), np.mean(params[1][1][N:])])
+        affinew = pd.DataFrame(affinew, columns=xs_name, index=['wn','wst'])
+        affineb = pd.DataFrame(affineb.T, columns=['bn','bst'])
+
+        stc = np.vstack([affine_c, st.T])
+        # stc = stc.T
+        stc = pd.DataFrame(stc.T, columns=['threshold','st'])
+        # stc = pd.concat([ori_data,stc],axis=1)
+
+        return number, affinew, affineb, stc
+            
+ #製作中
+    # def profit(self, xs, labels, ori_data, stc, batch_size, hold_num = 1, stops= 0.3):
+    #     model = self.model
+    #     N, BT, O = labels.shape
+    #     buyhold = []
+    #     buytime = []
+    #     selltime = []
+    #     profits = []
+    #     #accuracy_vr = []
+    #     #tsmax = np.arange(BT)
+    #     #score = 0
+    #     columns = ori_data.columns
+
+    #     batch_x = self.get_batch(xs, batch_size)
+    #     hs = model.predict(batch_x)
+    #     hs = softmax(hs)
+    #     hs = np.argmax(hs, axis=1)
+
+    #     for n in range(N):
+    #         #tsmax = np.argmax(labels[n], axis=1)
+    #         buyhold.append([columns[n],0,0])
+
+    #         for t in range(BT):
+
+    #             for i in buyhold:
+    #                 if i[2] != 0 & ori_data.iloc[t,n] <= i[1]*(1-stops):
+    #                     ret = round((ori_data.iloc[t,n] - i[0]) / i[0], 2)
+    #                     profits.append([ori_data.iloc[t,n]*i[2] - i[0]*i[2],ret])
+    #                     i[1] = ori_data.iloc[t,n]
+    #                     i[2] = 0
+                
+    #             if hs[t] > 3 & hs[t] < 6:
+    #                 bstime.append([t,None])
+    #                 buyhold.append([ori_data.iloc[t,n],None,hold_num])
+
 
 # 這邊應該也不用大改
 def remove_duplicate(params, grads):

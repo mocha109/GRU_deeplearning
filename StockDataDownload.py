@@ -94,12 +94,12 @@ def stocklabel(st_amount=30, return_data = 1, industry='all', itype='股票', in
     
     #將日資料平均成月資料
     data = data.resample('MS').mean()
+    ori_data = data.copy()
 
     #計算報酬率
     data=round((data-data.shift(return_data))/data.shift(return_data),4)
     data=data.dropna(axis=0)
 
-    ori_data = data.copy()
     data['code']=0
     
     c= len(data.columns)-1
