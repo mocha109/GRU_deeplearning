@@ -39,7 +39,7 @@ class RnnGRUTrainer:
         model = self.model
         model.load_params()
 
-    def single_fit(self, batch_x, single_ts, max_epoch=10, max_grad=None, saveP = False):
+    def single_fit(self, batch_x, single_ts, fix_rate, max_epoch=10, max_grad=None, saveP = False):
         '''
         本函式僅適用單一股票模型訓練，請輸入時確認資料型態
         '''
@@ -60,8 +60,8 @@ class RnnGRUTrainer:
             params, grads = model.params, model.grads
             if max_grad is not None:  # 梯度裁減
                 clip_grads(grads, max_grad)
-            clip_STgrads(grads,st)
-            optimizer.update(params, grads)  # 梯度更新方式
+            clip_STgrads(params, grads,st)
+            optimizer.update(params, grads, st)  # 梯度更新方式
 
             # 評估困惑度 
             # ppl = np.exp(avg_loss)
@@ -75,7 +75,7 @@ class RnnGRUTrainer:
                 model.save_params()
 
     
-    def multi_fit(self, batch_x, multi_ts, max_epoch, max_grad=None, wt_method='industry', saveP = False):
+    def multi_fit(self, batch_x, multi_ts, fix_rate, max_epoch, max_grad=None, wt_method='industry', saveP = False):
         '''
         本方法有2種調整權重方式，分別為industry、all_market :
         1.industry : 適用於ts資料及全來自同一產業，此方法透過所有股票共用同一權重來找出此產業中的重要影響因素，並排除個別股票的獨特特徵
@@ -101,9 +101,9 @@ class RnnGRUTrainer:
                     model.backward()
                     params, grads = model.params, model.grads
                     if max_grad is not None:  # 梯度裁減
-                        clip_grads(grads, max_grad)
-                    clip_STgrads(grads,st)
-                    optimizer.update(params, grads)  # 梯度更新方式
+                        clip_grads(params, grads, max_grad)
+                    clip_STgrads(grads,st, fix_rate)
+                    optimizer.update(params, grads, st)  # 梯度更新方式
                 
                 avg_loss = avg_loss / var_size
                 # ppl = np.exp(avg_loss)
@@ -131,8 +131,8 @@ class RnnGRUTrainer:
                     params, grads = model.params, model.grads
                     if max_grad is not None:  # 梯度裁減
                         clip_grads(grads, max_grad)
-                    clip_STgrads(grads,st)
-                    optimizer.update(params, grads)  # 梯度更新方式
+                    clip_STgrads(params, grads,st, fix_rate)
+                    optimizer.update(params, grads, st)  # 梯度更新方式
 
                     # 評估困惑度
                     
@@ -285,14 +285,17 @@ class RnnGRUTrainer:
                 number = number + p1
         
         # affine層整理
-
         affine_c = params[1][2]
 
-        affinew = np.hstack([np.mean(params[1][0][:,:N], axis=1), np.mean(params[1][0][:,N:], axis=1)])
-        affinew = affinew.reshape((2,6))
-        affineb = np.vstack([np.mean(params[1][1][:N]), np.mean(params[1][1][N:])])
-        affinew = pd.DataFrame(affinew, columns=xs_name, index=['wn','wst'])
-        affineb = pd.DataFrame(affineb.T, columns=['bn','bst'])
+        affinew = np.hstack([np.mean(params[1][0][:,4:N], axis=1), params[1][0][:,3], np.mean(params[1][0][:,:3], axis=1),
+                             np.mean(params[1][0][:,(N+5):], axis=1), params[1][0][:,(N+4)], np.mean(params[1][0][:,N:(N+4)], axis=1)])
+        affinew = affinew.reshape((-1,6))
+
+        affineb = np.vstack([np.mean(params[1][1][4:N]), params[1][1][3], np.mean(params[1][1][:3]),
+                             np.mean(params[1][1][(N+5):]), params[1][1][(N+4)], np.mean(params[1][1][N:(N+4)])])
+
+        affinew = pd.DataFrame(affinew, columns=xs_name, index=['wn_up', 'wn_mid', 'wn_dow', 'wst_up', 'wst_mid', 'wst_dow'])
+        affineb = pd.DataFrame(affineb.T, columns=['bn_up', 'bn_mid', 'bn_dow', 'bst_up', 'bst_mod', 'bst_down'])
 
         stc = np.vstack([affine_c, st.T])
         # stc = stc.T
@@ -346,8 +349,8 @@ class RnnGRUTrainer:
                 # 4、5:買1倍
                 elif (hs[t] > 3) & (hs[t] < 6):
                     buytime[n].append(t)
-                    if buyhold[n][2] ==0:
-                        buyhold[n][2] +=1
+                    # if buyhold[n][2] ==0:
+                    #     buyhold[n][2] +=1
                     buyhold[n][1] = round((buyhold[n][1]*buyhold[n][2] + price*each_buy) / (buyhold[n][2] + each_buy),3)
                     buyhold[n][2] = buyhold[n][2] + each_buy
                 
@@ -391,7 +394,7 @@ class RnnGRUTrainer:
             for i in profits[n]:
                 count += 1
                 pp = pp + i[0]
-                avg = round((avg + i[1]) / count,2)
+                avg = (avg + i[1]) / count
             
             all_profits.append([col_name[n], pp, avg])
                 

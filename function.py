@@ -57,23 +57,29 @@ def clip_grads(grads, max_norm):
                     grad *= rate
 
 
-def clip_STgrads(grads,st):
+def clip_STgrads(params, grads,st,fix_rate=0.5):
     # 門檻值處理
-    # nor_grads= (grads[1][2] - np.mean(grads[1][2])) / np.std(grads[1][2])
     c_max = np.max(st)
     c_min = np.min(st)
-    # grads[1][2][grads[1][2] > np.max(st)] *= 
-    
-    # if (np.max(grads[1][2]) > c_max) | (np.min(grads[1][2]) < c_min):
-    #     grads[1][2] *= c_rate
+    # c_std = np.std(st)
+    c_ratemax = 0.5
+    c_ratemin = 0.5
 
-    c_norm = np.sum(grads[1][2] ** 2)
-    c_ratemax = c_max / (c_norm + 1e-6)
-    c_ratemin = abs(c_min / (c_norm + 1e-6))
-    if c_ratemax < 1 :
-        grads[1][2] *= c_ratemax
-    elif c_ratemin < 1:
-        grads[1][2] *= c_ratemin
+    # grads[1][2][grads[1][2] > c_std] *= fix_rate
+    while (c_ratemax < 1) | (c_ratemin < 1):
+        c_norm = np.sum(grads[1][2] ** 2)
+        c_ratemax = c_max / (c_norm + 1e-6)
+        c_ratemin = abs(c_min / (c_norm + 1e-6))
+        if c_ratemax < 1 :
+            grads[1][2] *= c_ratemax
+        elif c_ratemin < 1:
+            grads[1][2] *= c_ratemin
+    
+    params[1][2][params[1][2] > c_max] *= fix_rate
+    params[1][2][params[1][2] < c_min] *= fix_rate
+    
+    # while grads[1][2][grads[1][2] < c_std].all():
+    #     grads[1][2][grads[1][2] > c_std] *= fix_rate
 
 def cross_entropy_error(y, t):
     if y.ndim == 1:

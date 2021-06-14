@@ -254,8 +254,10 @@ class TimeAffine:
         dW[:, :O] = np.dot(x.T, dout)  # N*O
         dW[:, O:2*O] = np.dot((tran*x).T,dout)  # N*O
         dc_temp = (1 / tran) -1
-        dc = np.sum(np.dot(-(tran**2), dc_temp.T) * self.st_gamma, axis=0)  # 1*BH
+        #dc = np.sum(np.dot(-(tran**2), dc_temp.T) * self.st_gamma, axis=0)  # 1*BH
+        dc = -(tran**2) * dc_temp * self.st_gamma  # 1*BH
         dc_temp = None
+        dc = dc.T
 
         dx_temp = np.dot(dout, W[:, :O].T)
         dx = (np.dot(tran * dout, W[:, O:2*O].T) + dx_temp)/2  # BH*N

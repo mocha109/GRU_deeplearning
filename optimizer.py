@@ -103,15 +103,16 @@ class Adam:
     '''
     Adam (http://arxiv.org/abs/1412.6980v8)
     '''
-    def __init__(self, lr=0.001, beta1=0.9, beta2=0.999):
+    def __init__(self, st_lim, lr, beta1=0.9, beta2=0.999):
         self.lr = lr
+        self.st_lim = st_lim
         self.beta1 = beta1
         self.beta2 = beta2
         self.iter = 0
         self.m = None
         self.v = None
         
-    def update(self, params, grads):
+    def update(self, params, grads, st):
         if self.m is None:
             self.m, self.v = [], []
             for param in params:
@@ -121,6 +122,7 @@ class Adam:
         
         self.iter += 1
         lr_t = self.lr * np.sqrt(1.0 - self.beta2**self.iter) / (1.0 - self.beta1**self.iter)
+        #st_lr = self.st_lr * np.sqrt(1.0 - self.beta2**self.iter) / (1.0 - self.beta1**self.iter)
         
         for i in range(len(params)):
             count = len(params[i])
@@ -128,7 +130,14 @@ class Adam:
             for j in range(len(params[i])):
                 self.m[j+i*count] += (1 - self.beta1) * (grads[i][j] - self.m[j+i*count])
                 self.v[j+i*count] += (1 - self.beta2) * (grads[i][j]**2 - self.v[j+i*count])
-                
+                    
                 params[i][j] -= lr_t * self.m[j+i*count] / (np.sqrt(self.v[j+i*count]) + 1e-7)
         
+        #st更新
+        # self.m[5] += (1 - self.beta1) * (grads[1][2] - self.m[5])
+        # self.v[5] += (1 - self.beta2) * (grads[1][2]**2 - self.v[5])
+        
+        params[1][2] = (params[1][2] - np.mean(params[1][2])) / np.std(params[1][2])
+        #params[1][2][params[1][2] > np.max(st)] *= self.st_lim
+        #params[1][2][params[1][2] < np.min(st)] *= self.st_lim
 
