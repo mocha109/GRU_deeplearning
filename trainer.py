@@ -60,7 +60,7 @@ class RnnGRUTrainer:
             params, grads = model.params, model.grads
             if max_grad is not None:  # 梯度裁減
                 clip_grads(grads, max_grad)
-            clip_STgrads(params, grads,st)
+            clip_STgrads(params, grads,st, fix_rate)
             optimizer.update(params, grads, st)  # 梯度更新方式
 
             # 評估困惑度 
@@ -102,7 +102,7 @@ class RnnGRUTrainer:
                     params, grads = model.params, model.grads
                     if max_grad is not None:  # 梯度裁減
                         clip_grads(params, grads, max_grad)
-                    clip_STgrads(grads,st, fix_rate)
+                    clip_STgrads(params, grads,st, fix_rate)
                     optimizer.update(params, grads, st)  # 梯度更新方式
                 
                 avg_loss = avg_loss / var_size
