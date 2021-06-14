@@ -32,21 +32,24 @@ st = PdNp(st)
 # %%
 # -----------------------------------------------------------------
 # 訓練與驗證資料區分
-xs, labels, ori_data, st, xs_v, labels_v, ori_data_v, st_v = TestValidate(xs, labels, ori_data, st, test_size = 138, batch_size = 10)
+xs, labels, ori_data, st, xs_v, labels_v, ori_data_v, st_v = TestValidate(xs, labels, ori_data, st, test_size = 142, batch_size = 10)
 # -----------------------------------------------------------------
 # %%
 # -----------------------------------------------------------------
 #設定超參數
 batch_size = 10
 data_size, var_size = xs.shape
-output_size = 7
-time_size = data_size // batch_size
-hidden_size = time_size  # 本模型必要設置，不這樣設在AFFINE層會出錯
-lr = 0.01
-st_lim = 0.001
-fix_rate = 0.01
-max_epoch = 60
-# max_grad = 
+output_size = 7   # 本模型必要設置，不這樣設在AFFINE層會出錯
+time_size = data_size // batch_size   # 本模型必要設置，不這樣設在AFFINE層會出錯
+hidden_size = time_size   # 本模型必要設置，不這樣設在AFFINE層會出錯
+
+wt_method = 'industry'   # 模型訓練方式(industry、all_market)
+lr = 0.01   # 學習率
+st_lim = 0.001   # 目前沒用
+fix_rate = 0.01   # 當門檻值極值超過st極大與極小值時，要將超過的門檻值縮小的比例
+max_epoch = 60   # 整體model訓練次數(注:採用不同訓練方式會有不同)
+max_grad = None   # 主參數是否要進行梯度裁減，請輸入數字(none表示不要裁減)
+
 gamma = np.std(xs, ddof=1, axis=0, dtype='f')
 st_gamma = np.std(st, ddof=1,dtype='f')
 # -----------------------------------------------------------------
@@ -60,8 +63,13 @@ trainer = RnnGRUTrainer(model, optimizer)
 # 套用梯度裁減並學習
 batch_x = trainer.get_batch(xs, batch_size)
 # trainer.single_fit(batch_x, single_ts, max_epoch=10, batch_size=20, max_grad=None)
-trainer.multi_fit(batch_x, fix_rate = fix_rate, max_epoch=max_epoch, multi_ts=labels, max_grad=None, wt_method='all_market') #industry
-trainer.plot(max_epoch, ylim=(0, 500))
+trainer.multi_fit(batch_x, fix_rate = fix_rate, max_epoch=max_epoch, multi_ts=labels, max_grad=max_grad, wt_method=wt_method)
+ppl_test = trainer.ppl_list
+
+if wt_method == 'industry':
+    trainer.plot(max_epoch, ylim=(0, (np.max(ppl_test))))
+else:
+    trainer.plot(max_epoch, ylim=(0, (500)))
 # -----------------------------------------------------------------
 # %%
 # -----------------------------------------------------------------

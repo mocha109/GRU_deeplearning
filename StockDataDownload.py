@@ -228,8 +228,11 @@ def PdNp(xs, pdTOnp = True):
 
 
 def TestValidate(xs, labels, ori_date, st, test_size, batch_size):
-    print('目前資料總長度為:\ntest : {}，validate : {}\nNOTE:設定時請注意validate長度一定要可被batch_size整除'.format(len(xs[:test_size]), len(xs[test_size:])))
-    confirm = input("請確認您的test_size，確定是否要繼續執行訓練資料集切割(Y/N): ")
+    print('目前資料總長度為:\ntest : {}，validate : {}\nNOTE.1:設定時請注意validate長度一定要可被batch_size整除\n\nNOTE.2:若您的validate長度不合規範，可在input中直接輸入新的test_size'.format(len(xs[:test_size]), len(xs[test_size:])))
+    confirm = input("請確認您的test_size，確定是否要繼續執行訓練資料集切割(Y / New test_size): ")
+    
+    if confirm != 'Y':
+        test_size = int(confirm)
 
     if confirm == 'Y':
         if len(xs[test_size:]) % batch_size == 0:
