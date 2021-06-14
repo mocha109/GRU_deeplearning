@@ -287,9 +287,9 @@ class RnnGRUTrainer:
         # affine層整理
         affine_c = params[1][2]
 
-        affinew = np.hstack([np.mean(params[1][0][:,4:N], axis=1), params[1][0][:,3], np.mean(params[1][0][:,:3], axis=1),
+        affinew = np.vstack([np.mean(params[1][0][:,4:N], axis=1), params[1][0][:,3], np.mean(params[1][0][:,:3], axis=1),
                              np.mean(params[1][0][:,(N+5):], axis=1), params[1][0][:,(N+4)], np.mean(params[1][0][:,N:(N+4)], axis=1)])
-        affinew = affinew.reshape((-1,6))
+        # affinew = affinew.reshape((-1,6))
 
         affineb = np.vstack([np.mean(params[1][1][4:N]), params[1][1][3], np.mean(params[1][1][:3]),
                              np.mean(params[1][1][(N+5):]), params[1][1][(N+4)], np.mean(params[1][1][N:(N+4)])])

@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 # %%
 # -----------------------------------------------------------------
 # 載入總經資料、標籤資料
-labels, ori_data = stocklabel(st_amount=60, industry='all', initial_time = "2001-01-01")
+labels, ori_data = stocklabel(st_amount=30, industry='all', initial_time = "2001-01-01")
 ori_data
 # -----------------------------------------------------------------
 # %%
