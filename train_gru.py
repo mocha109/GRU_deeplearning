@@ -36,7 +36,7 @@ xs, labels, ori_data, st, xs_v, labels_v, ori_data_v, st_v = TestValidate(xs, la
 # -----------------------------------------------------------------
 # %%
 # -----------------------------------------------------------------
-#設定超參數
+#設定超參數123
 batch_size = 10
 data_size, var_size = xs.shape
 output_size = 7   # 本模型必要設置，不這樣設在AFFINE層會出錯
