@@ -67,7 +67,7 @@ trainer.multi_fit(batch_x, fix_rate = fix_rate, max_epoch=max_epoch, multi_ts=la
 ppl_test = trainer.ppl_list
 
 if wt_method == 'industry':
-    trainer.plot(max_epoch, ylim=(0, (np.max(ppl_test))))
+    trainer.plot(max_epoch, ylim=((np.min(ppl_test)-1), (np.max(ppl_test)+1)))
 else:
     trainer.plot(max_epoch, ylim=(0, (500)))
 # -----------------------------------------------------------------
