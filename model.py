@@ -15,6 +15,7 @@ class Rnngru:
         N, B, T, H, O = var_size, batch_size, time_size, hidden_size, output_size
         rn = np.random.randn
         shape_x=(N, B, H)
+        self.st = st  # 用於trainer的梯度裁減
         
         #初始化權重
         gru_Wx = (rn(T, 3 * H)  / np.sqrt(T)).astype('f')
@@ -25,7 +26,7 @@ class Rnngru:
 
         st_mean = np.mean(st).astype('f')
         st_std = np.std(st).astype('f')
-        # affine_c = np.full(B*T, st_mean).astype('f')
+        #affine_c = np.full(B*T, st_mean).astype('f')
         affine_c = np.random.normal(st_mean, st_std, (1,B*T)).astype('f')
         
 

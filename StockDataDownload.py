@@ -95,6 +95,7 @@ def stocklabel(st_amount=30, return_data = 1, industry='all', itype='股票', in
     #將日資料平均成月資料
     data = data.resample('MS').mean()
     ori_data = data.copy()
+    ori_data = ori_data.dropna(axis=0)
 
     #計算報酬率
     data=round((data-data.shift(return_data))/data.shift(return_data),4)
@@ -169,6 +170,7 @@ def alter_a(xs, labels, ori_data, st):
     xs = xs[ind:ind_last]
 
     xs = xs.apply(lambda x: (x-x.mean())/ x.std(), axis=0)
+    st = (st - np.mean(st)) / np.std(st)
 
     return xs, labels, ori_data, st
 

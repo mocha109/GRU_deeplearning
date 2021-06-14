@@ -2,11 +2,11 @@
 import sys
 import time
 import matplotlib.pyplot as plt
-from pandas.core.indexes.base import Index
-import seaborn as sns
+# from pandas.core.indexes.base import Index
+# import seaborn as sns
 # from npTOcp import *  # import numpy as np
 import numpy as np
-from function import clip_grads
+from function import clip_grads, clip_STgrads
 from model import *
 import pandas as pd
 
@@ -28,7 +28,7 @@ class RnnGRUTrainer:
         offsets = [i * time_size for i in range(batch_size)]  # 計算各變數的各批次開始載入的位置
 
         batch_x = np.empty((var_size, batch_size, time_size), dtype='f')
-        batch_t = np.empty((var_size, batch_size, time_size), dtype='f')
+        # batch_t = np.empty((var_size, batch_size, time_size), dtype='f')
         
         for var in range(var_size):
             for i, offset in enumerate(offsets):
@@ -46,6 +46,7 @@ class RnnGRUTrainer:
         var_size, batch_size, time_size = batch_x.shape
         self.ppl_list = []
         model, optimizer = self.model, self.optimizer
+        st = model.st
 
         start_time = time.time()
         for epoch in range(max_epoch):
@@ -59,6 +60,7 @@ class RnnGRUTrainer:
             params, grads = model.params, model.grads
             if max_grad is not None:  # 梯度裁減
                 clip_grads(grads, max_grad)
+            clip_STgrads(grads,st)
             optimizer.update(params, grads)  # 梯度更新方式
 
             # 評估困惑度 
@@ -82,6 +84,7 @@ class RnnGRUTrainer:
         var_size, BT, out = multi_ts.shape
         self.ppl_list = []
         model, optimizer = self.model, self.optimizer
+        st = model.st
 
         # 將資料形式整理為批次
         # batch_x = self.get_batch(xs, batch_size)
@@ -99,6 +102,7 @@ class RnnGRUTrainer:
                     params, grads = model.params, model.grads
                     if max_grad is not None:  # 梯度裁減
                         clip_grads(grads, max_grad)
+                    clip_STgrads(grads,st)
                     optimizer.update(params, grads)  # 梯度更新方式
                 
                 avg_loss = avg_loss / var_size
@@ -127,6 +131,7 @@ class RnnGRUTrainer:
                     params, grads = model.params, model.grads
                     if max_grad is not None:  # 梯度裁減
                         clip_grads(grads, max_grad)
+                    clip_STgrads(grads,st)
                     optimizer.update(params, grads)  # 梯度更新方式
 
                     # 評估困惑度
@@ -297,39 +302,101 @@ class RnnGRUTrainer:
         return number, affinew, affineb, stc
             
  #製作中
-    # def profit(self, xs, labels, ori_data, stc, batch_size, hold_num = 1, stops= 0.3):
-    #     model = self.model
-    #     N, BT, O = labels.shape
-    #     buyhold = []
-    #     buytime = []
-    #     selltime = []
-    #     profits = []
-    #     #accuracy_vr = []
-    #     #tsmax = np.arange(BT)
-    #     #score = 0
-    #     columns = ori_data.columns
+    def profit(self, xs, labels, ori_data, batch_size, each_buy = 1000,stops= 0.3, good_time = 2, hesitate = 0.5, bed_time= 0.8):
+        model = self.model
+        N, BT, O = labels.shape
+        buyhold = []
+        buytime = []
+        selltime = []
+        profits = []
+        all_profits = []
+        col_name = list(ori_data.columns)
 
-    #     batch_x = self.get_batch(xs, batch_size)
-    #     hs = model.predict(batch_x)
-    #     hs = softmax(hs)
-    #     hs = np.argmax(hs, axis=1)
+        batch_x = self.get_batch(xs, batch_size)
+        hs = model.predict(batch_x)
+        hs = softmax(hs)
+        hs = np.argmax(hs, axis=1)
 
-    #     for n in range(N):
-    #         #tsmax = np.argmax(labels[n], axis=1)
-    #         buyhold.append([columns[n],0,0])
+        for n in range(N):
+            #tsmax = np.argmax(labels[n], axis=1)
+            buyhold.append([col_name[n],0,0])
+            buytime.append([])
+            selltime.append([])
+            profits.append([])
 
-    #         for t in range(BT):
+            for t in range(BT):
+                price = ori_data.iloc[t,n]
 
-    #             for i in buyhold:
-    #                 if i[2] != 0 & ori_data.iloc[t,n] <= i[1]*(1-stops):
-    #                     ret = round((ori_data.iloc[t,n] - i[0]) / i[0], 2)
-    #                     profits.append([ori_data.iloc[t,n]*i[2] - i[0]*i[2],ret])
-    #                     i[1] = ori_data.iloc[t,n]
-    #                     i[2] = 0
+                # 指損判斷
+                if (buyhold[n][2] > 0) & (price <= buyhold[n][1]*(1-stops)):
+                    ret = round((price - buyhold[n][1]) / buyhold[n][1], 2)
+                    earn = round(price*buyhold[n][2] - buyhold[n][1]*buyhold[n][2],2)
+                    profits[n].append([earn,ret])
+                    buyhold[n][1] = 0
+                    buyhold[n][2] = 0
+                    selltime[n].append(t)
+
+                # 6:買兩倍
+                elif hs[t] == 6:
+                    in_ratio = round(good_time*each_buy,0)
+                    buytime[n].append(t)
+                    buyhold[n][1] = round((buyhold[n][1]*buyhold[n][2] + price*in_ratio) / (buyhold[n][2] + in_ratio),3)
+                    buyhold[n][2] = buyhold[n][2] + in_ratio
                 
-    #             if hs[t] > 3 & hs[t] < 6:
-    #                 bstime.append([t,None])
-    #                 buyhold.append([ori_data.iloc[t,n],None,hold_num])
+                # 4、5:買1倍
+                elif (hs[t] > 3) & (hs[t] < 6):
+                    buytime[n].append(t)
+                    if buyhold[n][2] ==0:
+                        buyhold[n][2] +=1
+                    buyhold[n][1] = round((buyhold[n][1]*buyhold[n][2] + price*each_buy) / (buyhold[n][2] + each_buy),3)
+                    buyhold[n][2] = buyhold[n][2] + each_buy
+                
+                # 3:依hesitate調整，決定要售出多少比例股票
+                elif (hs[t] == 3) & (buyhold[n][2] > 0):
+                    out_ratio = round(hesitate*buyhold[n][2],0)
+
+                    if (hesitate != 0) & (out_ratio !=0):
+                        ret = round((price - buyhold[n][1]) / buyhold[n][1], 2)
+                        earn = round(price*out_ratio - buyhold[n][1]*out_ratio,2)
+                        profits[n].append([earn,ret])
+                        buyhold[n][1] = round(buyhold[n][1]*(buyhold[n][2]-out_ratio),3)
+                        buyhold[n][2] = buyhold[n][2]-out_ratio
+                        selltime[n].append(t)
+                
+                # 1、2:依bed_time調整，決定要售出多少比例股票
+                elif (hs[t] < 3) & (hs[t] > 0) & (buyhold[n][2] > 0):
+                    out_ratio = round(bed_time*buyhold[n][2],0)
+
+                    if (bed_time != 0) & (out_ratio !=0):
+                        ret = round((price - buyhold[n][1]) / buyhold[n][1], 2)
+                        earn = round(price*out_ratio - buyhold[n][1]*out_ratio,2)
+                        profits[n].append([earn,ret])
+                        buyhold[n][1] = round(buyhold[n][1]*(buyhold[n][2]-out_ratio),3)
+                        buyhold[n][2] = buyhold[n][2]-out_ratio
+                        selltime[n].append(t)
+                
+                # 0:全部賣出
+                elif (hs[t] == 0) & (buyhold[n][2] != 0):
+                    ret = round((price - buyhold[n][1]) / buyhold[n][1], 2)
+                    earn = round(price*buyhold[n][2] - buyhold[n][1]*buyhold[n][2],2)
+                    profits[n].append([earn,ret])
+                    buyhold[n][1] = 0
+                    buyhold[n][2] = 0
+                    selltime[n].append(t)
+        
+        pp = 0
+        avg = 0
+        for n in range(N):
+            count = 0
+            for i in profits[n]:
+                count += 1
+                pp = pp + i[0]
+                avg = round((avg + i[1]) / count,2)
+            
+            all_profits.append([col_name[n], pp, avg])
+                
+        return all_profits, profits, buyhold, buytime, selltime
+
 
 
 # 這邊應該也不用大改

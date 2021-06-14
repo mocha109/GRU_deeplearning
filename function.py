@@ -39,15 +39,41 @@ def softmax(x):
 #梯度裁減
 def clip_grads(grads, max_norm):
     total_norm = 0
-    for grad in grads:
-        total_norm += np.sum(grad ** 2)
+    count = 0
+    for i in range(len(grads)):
+        for grad in grads[i]:
+            count += 1
+            if count != 6: # 避開c
+                total_norm += np.sum(grad ** 2)
     total_norm = np.sqrt(total_norm)
 
     rate = max_norm / (total_norm + 1e-6)
     if rate < 1:
-        for grad in grads:
-            grad *= rate
+        count = 0
+        for i in range(len(grads)):
+            for grad in grads[i]:
+                count += 1
+                if count != 6: # 避開c
+                    grad *= rate
 
+
+def clip_STgrads(grads,st):
+    # 門檻值處理
+    # nor_grads= (grads[1][2] - np.mean(grads[1][2])) / np.std(grads[1][2])
+    c_max = np.max(st)
+    c_min = np.min(st)
+    # grads[1][2][grads[1][2] > np.max(st)] *= 
+    
+    # if (np.max(grads[1][2]) > c_max) | (np.min(grads[1][2]) < c_min):
+    #     grads[1][2] *= c_rate
+
+    c_norm = np.sum(grads[1][2] ** 2)
+    c_ratemax = c_max / (c_norm + 1e-6)
+    c_ratemin = abs(c_min / (c_norm + 1e-6))
+    if c_ratemax < 1 :
+        grads[1][2] *= c_ratemax
+    elif c_ratemin < 1:
+        grads[1][2] *= c_ratemin
 
 def cross_entropy_error(y, t):
     if y.ndim == 1:
