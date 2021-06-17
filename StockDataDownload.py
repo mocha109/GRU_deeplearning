@@ -233,6 +233,7 @@ def TestValidate(xs, labels, ori_date, st, test_size, batch_size):
     
     if confirm != 'Y':
         test_size = int(confirm)
+        confirm = 'Y'
 
     if confirm == 'Y':
         if len(xs[test_size:]) % batch_size == 0:
