@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 # %%
 # -----------------------------------------------------------------
 # 載入總經資料、標籤資料
-labels, ori_data = stocklabel(st_amount=30, industry='all', initial_time = "2001-01-01")
+labels, ori_data = stocklabel(st_amount=120, industry='all', initial_time = "2001-01-01")
 ori_data
 # -----------------------------------------------------------------
 # %%
@@ -44,10 +44,10 @@ time_size = data_size // batch_size   # 本模型必要設置，不這樣設在A
 hidden_size = time_size   # 本模型必要設置，不這樣設在AFFINE層會出錯
 
 wt_method = 'industry'   # 模型訓練方式(industry、all_market)
-lr = 0.01   # 學習率
+lr = 0.001   # 學習率
 st_lim = 0.001   # 目前沒用
 fix_rate = 0.01   # 當門檻值極值超過st極大與極小值時，要將超過的門檻值縮小的比例
-max_epoch = 60   # 整體model訓練次數(注:採用不同訓練方式會有不同)
+max_epoch = 70   # 整體model訓練次數(注:採用不同訓練方式會有不同)
 max_grad = None   # 主參數是否要進行梯度裁減，請輸入數字(none表示不要裁減)
 
 gamma = np.std(xs, ddof=1, axis=0, dtype='f')
@@ -69,7 +69,7 @@ ppl_test = trainer.ppl_list
 if wt_method == 'industry':
     trainer.plot(max_epoch, ylim=((np.min(ppl_test)-1), (np.max(ppl_test)+1)))
 else:
-    trainer.plot(max_epoch, ylim=(0, (500)))
+    trainer.plot(max_epoch, ylim=(0, (np.max(ppl_test)+100)))
 # -----------------------------------------------------------------
 # %%
 # -----------------------------------------------------------------
@@ -93,8 +93,8 @@ number, affinew, affineb, stc = trainer.summary(xs_name, st)
 stc.plot()
 # -----------------------------------------------------------------
 # %%
-affinew
-#affineb
+#affinew
+affineb
 #number
 # %%
 # -----------------------------------------------------------------
